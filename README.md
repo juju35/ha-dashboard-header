@@ -109,7 +109,8 @@ views:
 | `collapse_on_scroll` | `true` | Illustrated mode: fold to the compact bar once the page scrolls, unfold at the top. |
 | `title` | dashboard title | Text, entity id or template. |
 | `subtitle` | — | Text, entity id or template. |
-| `accent` | per scene | Active tab and default status color: a palette name (`green`, `amber`, `blue`, `cyan`, `violet`, `red`, `gray`) or any CSS color. |
+| `icon` | per scene | MDI icon of the badge, e.g. `mdi:home-assistant`. |
+| `accent` | per scene | Badge, active tab and default status color: a palette name (`green`, `amber`, `blue`, `cyan`, `violet`, `red`, `gray`) or any CSS color. |
 | `status.text` | — | Status pill text: text, entity id or template. No pill without it. |
 | `status.entity` | — | Show this entity's state as the status text (instead of `status.text`). |
 | `status.color` | accent | Pill color: palette name, CSS color or template. |

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.0 - 2026-11-19
+
+### Features
+- The icon badge is back in front of the dashboard title (per-scene MDI icon, `icon` option to choose another).
+
 ## 1.0.1 - 2026-11-19
 
 ### Fixes
