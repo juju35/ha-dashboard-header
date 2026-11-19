@@ -82,7 +82,6 @@ customElements.define("ha-icon", class extends HTMLElement {
 });
 class IconButton extends HTMLElement {
   connectedCallback() {
-    this.style.cssText += ";display:inline-flex;align-items:center;justify-content:center;color:inherit";
     this.innerHTML = svg(ICONS[this.getAttribute("icon")], 22);
   }
 }
@@ -97,6 +96,7 @@ customElements.define("hui-root", class extends HTMLElement {
       .toolbar { border-bottom: 1px solid var(--divider-color); height: var(--header-height); display: flex; align-items: center;
         font-size: 20px; padding: 0 12px; box-sizing: border-box; }
       .narrow .toolbar { padding: 0 4px; }
+      ha-icon-button, ha-menu-button { display: inline-flex; align-items: center; justify-content: center; color: inherit; }
       .wrap:not(.narrow) ha-menu-button { display: none; } /* docked sidebar: no sidebar button */
       .action-items { white-space: nowrap; display: flex; align-items: center; }
       ha-tab-group { flex-grow: 1; }
