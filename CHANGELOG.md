@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1 - 2026-11-19
+
+### Fixes
+- No icon badge in front of the dashboard title any more: the title starts the header (the `icon` option is removed).
+
 ## 1.0.0 - 2026-11-19
 
 ### Features

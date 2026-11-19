@@ -1,6 +1,6 @@
 {
   "name": "ha-dashboard-header",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Illustrated dashboard headers for Home Assistant, matching the ha-* cards: a 90 px scene per dashboard with text tabs, or a compact bar with pill tabs.",
   "private": true,
   "type": "module",

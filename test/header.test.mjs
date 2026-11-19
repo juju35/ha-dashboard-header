@@ -10,12 +10,11 @@ test("no dashboard_header block: the native header stays", () => {
   assert.equal(dh.resolveConfig(undefined, undefined), null);
 });
 
-test("defaults: illustrated maison scene, folding on scroll, scene icon and accent", () => {
+test("defaults: illustrated maison scene, folding on scroll, scene accent", () => {
   const c = dh.resolveConfig({ dashboard_header: {} }, {});
   assert.equal(c.scene, "maison");
   assert.equal(c.mode, "illustrated");
   assert.equal(c.collapse, true);
-  assert.equal(c.icon, "mdi:home-assistant");
   assert.equal(c.accent, "blue");
   assert.equal(c.status, null);
 });
@@ -88,7 +87,6 @@ test("templates are recognised", () => {
 test("every scene draws a complete SVG in both themes, whatever its state", () => {
   const states = [{}, { lights: "on", vacuum: "cleaning", appliance: "on", printer: "on", vehicles: 1, tempo: "rouge", power: "on", alert: "error", alarm: "triggered", lock: "open", camera_privacy: "on", school: "off", bin: "vert", rain: "on", lamp: "on" }];
   for (const [name, scene] of Object.entries(dh.SCENES)) {
-    assert.match(scene.icon, /^mdi:/);
     for (const mode of ["light", "dark"]) {
       for (const st of states) {
         const svg = scene.draw(sky(mode), st, dh.PALETTE[mode], mode);

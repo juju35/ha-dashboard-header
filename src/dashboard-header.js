@@ -142,7 +142,6 @@
 
   const SCENES = {
     maison: {
-      icon: "mdi:home-assistant",
       accent: "blue",
       bg: "sky",
       keys: ["lights"],
@@ -157,7 +156,6 @@
         ground(c.grass),
     },
     equipements: {
-      icon: "mdi:devices",
       accent: "violet",
       bg: "wall",
       keys: ["vacuum", "appliance", "printer"],
@@ -184,7 +182,6 @@
       },
     },
     voitures: {
-      icon: "mdi:car",
       accent: "cyan",
       bg: "sky",
       keys: ["vehicles"],
@@ -206,7 +203,6 @@
       },
     },
     energie: {
-      icon: "mdi:lightning-bolt",
       accent: "amber",
       bg: "sky",
       keys: ["tempo", "power"],
@@ -222,7 +218,6 @@
         ground(c.grass),
     },
     systeme: {
-      icon: "mdi:server",
       accent: "blue",
       bg: "wall2",
       keys: ["alert"],
@@ -250,7 +245,6 @@
       },
     },
     securite: {
-      icon: "mdi:shield-home",
       accent: "green",
       bg: "sky",
       keys: ["alarm", "lock", "camera_privacy"],
@@ -272,7 +266,6 @@
       },
     },
     famille: {
-      icon: "mdi:calendar-heart",
       accent: "red",
       bg: "sky",
       keys: ["school", "bin"],
@@ -295,7 +288,6 @@
       },
     },
     exterieur: {
-      icon: "mdi:tree",
       accent: "green",
       bg: "sky",
       keys: ["rain", "lamp"],
@@ -349,7 +341,6 @@
       collapse: mode === "illustrated" && cfg.collapse_on_scroll !== false,
       title: cfg.title,
       subtitle: cfg.subtitle,
-      icon: cfg.icon || (SCENES[scene] || SCENES.maison).icon,
       accent: cfg.accent || (SCENES[scene] || SCENES.maison).accent,
       status: cfg.status && (cfg.status.text != null || cfg.status.entity) ? cfg.status : null,
       sceneState: cfg.scene_state,
@@ -570,7 +561,7 @@
         : "";
 
       const identity =
-        `<div class="identity"><span class="badge" style="color:${esc(accent)}">${this._icon(cfg.icon, 22)}</span>` +
+        `<div class="identity">` +
         `<span class="names"><span class="title">${esc(title)}</span>${subtitle ? `<span class="sub">${esc(subtitle)}</span>` : ""}</span></div>`;
 
       const body = compact
@@ -637,9 +628,6 @@
     .band { height: ${BAND}px; overflow: hidden; padding-bottom: 4px; color: var(--text); }
     .scene { position: absolute; inset: 0; width: 100%; height: 100%; }
     .identity { position: relative; display: flex; align-items: center; gap: 12px; min-width: 0; flex: 0 1 auto; }
-    .badge { width: 40px; height: 40px; border-radius: 50%; flex: none; display: inline-flex; align-items: center; justify-content: center;
-      background: var(--glass); }
-    .is-compact .badge { background: color-mix(in srgb, var(--accent) 14%, transparent); }
     .names { display: flex; flex-direction: column; min-width: 0; }
     .title { font-size: 20px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sub { font-size: 13px; line-height: 1.3; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
