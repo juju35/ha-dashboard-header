@@ -1,0 +1,116 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { load } from "./load.mjs";
+
+const dh = load();
+const LANGS = ["en", "fr", "de", "es", "it", "nl", "pt", "pl", "sr", "sr-Latn", "ro", "da", "sv", "bg", "ru", "uk", "hu", "sk", "cs", "sl", "lv", "el"];
+
+test("no dashboard_header block: the native header stays", () => {
+  assert.equal(dh.resolveConfig({ views: [] }, {}), null);
+  assert.equal(dh.resolveConfig(undefined, undefined), null);
+});
+
+test("defaults: illustrated maison scene, folding on scroll, scene icon and accent", () => {
+  const c = dh.resolveConfig({ dashboard_header: {} }, {});
+  assert.equal(c.scene, "maison");
+  assert.equal(c.mode, "illustrated");
+  assert.equal(c.collapse, true);
+  assert.equal(c.icon, "mdi:home-assistant");
+  assert.equal(c.accent, "blue");
+  assert.equal(c.status, null);
+});
+
+test("compact mode never folds; collapse_on_scroll: false keeps the band", () => {
+  assert.equal(dh.resolveConfig({ dashboard_header: { mode: "compact" } }).collapse, false);
+  assert.equal(dh.resolveConfig({ dashboard_header: { collapse_on_scroll: false } }).collapse, false);
+});
+
+test("a view overlays the dashboard block, scene_state and status merged, enabled: false turns it off", () => {
+  const lovelace = { dashboard_header: { scene: "maison", subtitle: "a", status: { text: "OK", color: "green" }, scene_state: { lights: "light.all" } } };
+  const c = dh.resolveConfig(lovelace, { dashboard_header: { scene: "energy", status: { color: "red" }, scene_state: { tempo: "sensor.tempo" } } });
+  assert.equal(c.scene, "energie");
+  assert.equal(c.subtitle, "a");
+  assert.deepEqual({ ...c.status }, { text: "OK", color: "red" });
+  assert.deepEqual({ ...c.sceneState }, { lights: "light.all", tempo: "sensor.tempo" });
+  assert.equal(dh.resolveConfig(lovelace, { dashboard_header: { enabled: false } }), null);
+});
+
+test("scene names: French, English aliases and accents; unknown falls back to maison", () => {
+  for (const [given, want] of [
+    ["voitures", "voitures"],
+    ["cars", "voitures"],
+    ["Sécurité", "securite"],
+    ["system", "systeme"],
+    ["outdoor", "exterieur"],
+    ["devices", "equipements"],
+    ["nope", "maison"],
+  ])
+    assert.equal(dh.sceneName(given), want, given);
+});
+
+test("tabs: no subviews, no views hidden from the current user", () => {
+  const views = [{ title: "A" }, { title: "B", subview: true }, { title: "C", visible: false }, { title: "D", visible: [{ user: "u1" }] }, { title: "E", visible: [{ user: "u2" }] }];
+  assert.deepEqual(
+    dh.visibleViews(views, { user: { id: "u1" } }).map((v) => v.view.title),
+    ["A", "D"],
+  );
+});
+
+test("truthy states", () => {
+  for (const v of [true, 1, "on", "ON", "open", "home", "cleaning", "armed_away", "2"]) assert.equal(dh.truthy(v), true, String(v));
+  for (const v of [false, 0, null, undefined, "", "off", "closed", "docked", "disarmed", "unavailable", "0"]) assert.equal(dh.truthy(v), false, String(v));
+});
+
+test("colors: palette names and aliases per theme, CSS colors as given", () => {
+  assert.equal(dh.colorOf("green", "light"), dh.PALETTE.light.green);
+  assert.equal(dh.colorOf("purple", "dark"), dh.PALETTE.dark.violet);
+  assert.equal(dh.colorOf("#123456", "light"), "#123456");
+  assert.equal(dh.colorOf("", "light", "x"), "x");
+});
+
+test("Tempo and bin colors understand French and English", () => {
+  const sky = { white: "#eee" };
+  assert.equal(dh.tempoColor("Bleu", "light", sky), dh.PALETTE.light.blue);
+  assert.equal(dh.tempoColor("WHITE", "light", sky), "#eee");
+  assert.equal(dh.tempoColor("rouge", "dark", sky), dh.PALETTE.dark.red);
+  assert.equal(dh.binColor("jaune"), dh.binColor("yellow"));
+  assert.equal(dh.binColor("off"), null);
+  assert.equal(dh.binColor(""), null);
+  assert.equal(dh.binColor("#abcdef"), "#abcdef");
+});
+
+test("templates are recognised", () => {
+  assert.equal(dh.isTemplate("{{ states('sensor.x') }}"), true);
+  assert.equal(dh.isTemplate("{% if x %}a{% endif %}"), true);
+  assert.equal(dh.isTemplate("sensor.x"), false);
+});
+
+test("every scene draws a complete SVG in both themes, whatever its state", () => {
+  const states = [{}, { lights: "on", vacuum: "cleaning", appliance: "on", printer: "on", vehicles: 1, tempo: "rouge", power: "on", alert: "error", alarm: "triggered", lock: "open", camera_privacy: "on", school: "off", bin: "vert", rain: "on", lamp: "on" }];
+  for (const [name, scene] of Object.entries(dh.SCENES)) {
+    assert.match(scene.icon, /^mdi:/);
+    for (const mode of ["light", "dark"]) {
+      for (const st of states) {
+        const svg = scene.draw(sky(mode), st, dh.PALETTE[mode], mode);
+        assert.doesNotMatch(svg, /undefined|NaN|null/, `${name} ${mode}`);
+        assert.ok(svg.includes('y="86"') && svg.includes('height="4"'), `${name}: 4 px ground bar`);
+        const open = (svg.match(/<g[ >]/g) || []).length;
+        assert.equal(open, (svg.match(/<\/g>/g) || []).length, `${name}: balanced groups`);
+      }
+    }
+  }
+});
+
+test("every language has every string", () => {
+  assert.deepEqual(Object.keys(dh.STRINGS).sort(), [...LANGS].sort());
+  for (const l of LANGS) assert.deepEqual(Object.keys(dh.STRINGS[l]), Object.keys(dh.STRINGS.en), l);
+});
+
+// The scene colors, read back from the source (they are not exported on purpose: one palette per theme).
+function sky(mode) {
+  const c = {};
+  for (const k of ["sky", "text", "sub", "glass", "stars", "sun", "cloud", "hill", "tree", "house", "roof", "winOn", "winOff", "door", "grass", "wall", "wall2", "floor", "floor2", "floorBar", "wood", "deck", "appl", "line", "paper", "asphalt", "road", "glassWin", "tyre", "rack", "unit", "lamp", "lampOn", "clay", "white"])
+    c[k] = `${mode}-${k}`;
+  c.stars = mode === "dark" ? 1 : 0;
+  return c;
+}
