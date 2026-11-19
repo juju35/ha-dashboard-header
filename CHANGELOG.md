@@ -3,7 +3,7 @@
 ## 1.2.0 - 2026-11-19
 
 ### Features
-- Cars scene: the roadside of ha-vehicle-card (street lamp lit at night, bush, road) and each car drawn as its own picture — `scene_state.vehicles` takes picture entities (`image.*`, ha-renault-picture, a device tracker with a picture) or URLs, up to three; plain cars as in ha-vehicle-card otherwise.
+- Cars scene: the roadside of ha-vehicle-card (sky gradient, sun or moon, drifting clouds, hills, street lamp lit at night, bush, 10 px road) and each car drawn as its own picture — `scene_state.vehicles` takes picture entities (`image.*`, ha-renault-picture, a device tracker with a picture) or URLs, up to three; plain cars as in ha-vehicle-card otherwise.
 
 ## 1.1.0 - 2026-11-19
 

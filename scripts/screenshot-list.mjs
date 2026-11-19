@@ -6,7 +6,7 @@
 const VIEWS = {
   maison: ["Home", "Information", "Living room", "Bedroom", "Kids", "Bathroom", "Entrance", "Terrace"],
   equipements: ["Vacuum", "Thermostats", "NAS", "Internet"],
-  voitures: ["Fuel", "SUV", "City car"],
+  voitures: ["Fuel", "SUV", "Compact"],
   energie: ["Today", "Tempo", "Meter", "Water", "History"],
   systeme: ["System", "Network", "Containers", "Proxmox", "Backups"],
   securite: ["Alarm", "Cameras", "Detectors", "Access"],
@@ -18,7 +18,16 @@ const VIEWS = {
 export const DASHBOARDS = {
   maison: { title: "Home", header: { scene: "maison", subtitle: "Thursday 19 November · 8 °C · 3 at home", status: { text: "All good", color: "green" }, scene_state: { lights: "on" } } },
   equipements: { title: "Devices", header: { scene: "equipements", subtitle: "Vacuum docked · dishwasher ends in 42 min", status: { text: "1 running", color: "amber" }, scene_state: { vacuum: "docked", appliance: "on" } } },
-  voitures: { title: "Cars", header: { scene: "voitures", subtitle: "SUV 640 km · city car 410 km · diesel 1.62 €", status: { text: "Locked", color: "green" } } },
+  voitures: {
+    title: "Cars",
+    header: {
+      scene: "voitures",
+      subtitle: "SUV 640 km · compact 410 km · diesel 1.62 €",
+      status: { text: "Locked", color: "green" },
+      // The car pictures of ha-vehicle-card's screenshots, served by scripts/screenshots.mjs.
+      scene_state: { vehicles: ["https://pictures.test/espace.webp", "https://pictures.test/captur.webp"] },
+    },
+  },
   energie: { title: "Energy", header: { scene: "energie", subtitle: "Blue day · 1.24 kW · 8.4 kWh today", status: { text: "Blue day", color: "blue" }, scene_state: { tempo: "Bleu", power: "off" } } },
   systeme: { title: "System", header: { scene: "systeme", subtitle: "3 VMs · 14 containers · ↓ 1.8 Gbit/s", status: { text: "All up", color: "green" }, scene_state: { alert: "ok" } } },
   securite: { title: "Security", header: { scene: "securite", subtitle: "Disarmed · front door locked · 3 cameras private", status: { text: "Protected", color: "green" }, scene_state: { alarm: "disarmed", lock: "locked", camera_privacy: "on" } } },

@@ -108,7 +108,7 @@ test("every scene draws a complete SVG in both themes, whatever its state", () =
       for (const st of states) {
         const svg = scene.draw(sky(mode), st, dh.PALETTE[mode], mode);
         assert.doesNotMatch(svg, /undefined|NaN|null/, `${name} ${mode}`);
-        assert.ok(svg.includes('y="86"') && svg.includes('height="4"'), `${name}: 4 px ground bar`);
+        assert.ok((svg.includes('y="86"') && svg.includes('height="4"')) || (svg.includes('y="80"') && svg.includes('height="10"')), `${name}: ground bar or road`);
         const open = (svg.match(/<g[ >]/g) || []).length;
         assert.equal(open, (svg.match(/<\/g>/g) || []).length, `${name}: balanced groups`);
       }

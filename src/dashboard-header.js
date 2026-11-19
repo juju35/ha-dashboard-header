@@ -134,17 +134,31 @@
     (led ? `<circle class="${led.blink ? "blink" : ""}" cx="${x + 57}" cy="75" r="2.2" fill="${led.color}"/>` : "");
   const tree = (c, x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c.tree}"/><rect x="${x - 2}" y="${y + 4}" width="4" height="${86 - y - 4}" fill="${c.tree}"/>`;
   const pylon = (c, x) => `<path d="M${x - 10} 86 L${x} 24 L${x + 10} 86 M${x - 6} 60 H${x + 6} M${x - 4} 44 H${x + 4} M${x - 14} 30 H${x + 14}" fill="none" stroke="${c.line}" stroke-width="2"/>`;
+  // The roadside of ha-vehicle-card (rnSceneSvg / RN_SCENE_STYLE), at its own scale: its sky gradient, sun or moon,
+  // drifting clouds, two hills, street lamp (lit at night), bush and 10 px road; the cars park on the road.
+  const VC = {
+    light: { far: "#a7d39f", hill: "#86c27f", bush: "#4f9a3a", pole: "#5f6b7a", bulb: "#e8e0d0", glass: "#cfe6f7", tyre: "#22262b",
+      road: "#858c94", roadLine: "#6f767d", dash: 0.85, cloud: 0.92 },
+    dark: { far: "#1d3a4a", hill: "#17303d", bush: "#1e3d2a", pole: "#7d8793", bulb: "#ffd27a", glass: "#3b4b5e", tyre: "#22262b",
+      road: "#2c323b", roadLine: "#3a414c", dash: 0.5, cloud: 0.1 },
+  };
+  const VC_SKY = {
+    light: "linear-gradient(90deg, #f1f8ff 0%, #e2f1fd 34%, #b9def8 70%, #9fd0f3 100%)",
+    dark: "linear-gradient(90deg, #1b2f52 0%, #15284a 36%, #0f1f3d 72%, #0a1830 100%)",
+  };
+  const VC_CLOUD = "M-14,4 C-17,4 -18,0 -14.5,-1 C-14,-5 -8,-6 -6,-3 C-4,-8 4,-8 5,-2 C9,-3 12,0 10,4 Z";
   // ha-vehicle-card's plain car (rnSceneCar), drawn when a vehicle has no picture.
-  const plainCar = (c, color, x, scale) =>
-    `<g transform="translate(${x} 82) scale(${scale})"><path d="M0 -6 Q1 -11 8 -12 L14 -16 H26 L33 -12 Q40 -11 40 -6 V-2 H0Z" fill="${color}"/>` +
-    `<path d="M15 -15 H25 L30 -12 H11Z" fill="${c.glassWin}"/><circle cx="9" cy="-2" r="3.4" fill="${c.tyre}"/><circle cx="31" cy="-2" r="3.4" fill="${c.tyre}"/></g>`;
-  // ha-vehicle-card's street lamp (lit at night) and bush.
-  const streetLamp = (c, x, night) =>
-    (night ? `<circle cx="${x + 8}" cy="34" r="22" fill="${c.lampOn}" opacity="0.22"/>` : "") +
-    `<rect x="${x}" y="32" width="2" height="54" fill="${c.line}"/>` +
-    `<path d="M${x + 1} 33 Q${x + 1} 28 ${x + 7} 28 H${x + 12}" fill="none" stroke="${c.line}" stroke-width="1.8"/>` +
-    `<rect x="${x + 6}" y="27" width="11" height="3.6" rx="1.5" fill="${c.line}"/>` +
-    `<rect x="${x + 7.5}" y="30.4" width="8" height="1.8" rx="0.9" fill="${night ? c.lampOn : c.lamp}"/>`;
+  const plainCar = (v, color, x) =>
+    `<g transform="translate(${x} 79) scale(2.1)"><path d="M0 -6 Q1 -11 8 -12 L14 -16 H26 L33 -12 Q40 -11 40 -6 V-2 H0Z" fill="${color}"/>` +
+    `<path d="M15 -15 H25 L30 -12 H11Z" fill="${v.glass}"/><circle cx="9" cy="-2" r="3.4" fill="${v.tyre}"/><circle cx="31" cy="-2" r="3.4" fill="${v.tyre}"/></g>`;
+  const streetLamp = (v, x, night) =>
+    (night ? `<circle cx="${x + 7.6}" cy="40" r="16" fill="#ffd27a" opacity="0.3"/>` : "") +
+    `<rect x="${x}" y="38" width="1.4" height="42" fill="${v.pole}"/>` +
+    `<path d="M${x + 0.6} 39 Q${x + 0.6} 36 ${x + 4.6} 36 H${x + 8.6}" fill="none" stroke="${v.pole}" stroke-width="1.2"/>` +
+    `<rect x="${x + 4.6}" y="36" width="7" height="2.4" rx="1" fill="${v.pole}"/>` +
+    `<rect x="${x + 5.6}" y="38.2" width="5" height="1.2" rx="0.6" fill="${v.bulb}"/>`;
+  // Where each picture parks on the road (x of its 124 × 66 box, as in ha-vehicle-card), for one to three vehicles.
+  const PARKING = { 1: [1150], 2: [1066, 1196], 3: [1000, 1116, 1232] };
   // The vehicles of the cars scene: a list of picture entities (image.*, or any entity with an entity_picture, e.g.
   // the device tracker), picture URLs, or { picture } objects; or a number of plain cars. At most three.
   const vehicleList = (raw, hass) => {
@@ -158,8 +172,6 @@
     const n = Math.max(1, Math.min(3, Number.parseInt(raw ?? 2, 10) || 2));
     return Array.from({ length: n }, () => ({ img: null }));
   };
-  // Where each vehicle parks on the road (x of the box, box width), for one to three vehicles.
-  const PARKING = { 1: [[1080, 190]], 2: [[1010, 170], [1180, 170]], 3: [[930, 150], [1080, 150], [1230, 150]] };
 
   const SCENES = {
     maison: {
@@ -207,32 +219,38 @@
     voitures: {
       icon: "mdi:car",
       accent: "cyan",
-      bg: "sky",
+      band: (mode) => VC_SKY[mode],
       keys: ["vehicles"],
-      // The roadside of ha-vehicle-card: lamp, bush, road; each car is its own picture (the official photo of
-      // ha-renault-picture, the integration's image entity…) parked on the road, or ha-vehicle-card's plain car.
+      // ha-vehicle-card's roadside; each car is its own picture (the official photo of ha-renault-picture, the
+      // integration's image entity…) parked on the road, or ha-vehicle-card's plain car.
       draw: (c, st, p, mode, hass) => {
-        const cars = vehicleList(st.vehicles, hass);
+        const v = VC[mode];
         const night = mode === "dark";
+        const cars = vehicleList(st.vehicles, hass);
         const colors = [p.cyan, p.amber, p.violet];
         return (
-          stars(c, [[700, 20, 1.2], [880, 12, 1], [1180, 16, 1], [1330, 26, 1.2]]) +
-          `<circle cx="840" cy="26" r="12" fill="${c.sun}"/>` +
-          `<g fill="${c.cloud}"><ellipse cx="720" cy="24" rx="30" ry="8"/><ellipse cx="740" cy="19" rx="18" ry="8"/></g>` +
-          hills(c, "M0 70 Q200 52 400 66 T800 60 T1400 64 V90 H0z") +
-          streetLamp(c, 960, night) +
-          `<g fill="${c.tree}"><circle cx="1374" cy="70" r="11"/><circle cx="1360" cy="75" r="8"/></g>` +
-          `<rect x="0" y="76" width="1600" height="10" fill="${c.asphalt}"/>` +
-          `<path d="M0 81 H1600" stroke="#ffffff" stroke-width="2" stroke-dasharray="14 14" opacity="0.75"/>` +
+          (night
+            ? [[1012, 8], [1044, 18], [1096, 6], [1132, 26], [1166, 8], [1190, 22], [970, 30], [1112, 16], [880, 12], [930, 22]]
+                .map(([x, y], i) => `<circle class="${i % 2 ? "twinkle" : ""}" cx="${x}" cy="${y}" r="0.8" fill="#ffffff" opacity="0.8"/>`)
+                .join("") +
+              `<circle cx="1248" cy="12" r="5.5" fill="#f3eed2"/><circle cx="1250.5" cy="10" r="4.5" fill="#0c1b37"/>`
+            : `<circle cx="1248" cy="12" r="9" fill="#ffd65a" opacity="0.28"/><circle cx="1248" cy="12" r="6" fill="#ffd65a"/>`) +
+          `<path class="drift" transform="translate(1126 14)" d="${VC_CLOUD}" fill="#ffffff" opacity="${v.cloud}"/>` +
+          `<path class="drift slow" transform="translate(1174 24) scale(.75)" d="${VC_CLOUD}" fill="#ffffff" opacity="${v.cloud}"/>` +
+          `<path d="M880,80 C960,70 1020,64 1100,66 C1180,68 1260,60 1340,62 C1420,64 1500,60 1600,62 L1600,80Z" fill="${v.far}"/>` +
+          `<path d="M840,80 C960,74 1100,75 1600,72 L1600,80Z" fill="${v.hill}"/>` +
+          streetLamp(v, 1010, night) +
+          `<g fill="${v.bush}"><circle cx="1352" cy="72" r="6"/><circle cx="1345" cy="75" r="5"/></g>` +
+          `<rect x="0" y="80" width="1600" height="10" fill="${v.road}"/><rect x="0" y="80" width="1600" height="1" fill="${v.roadLine}"/>` +
+          `<path d="M0 85 H1600" stroke="#ffffff" stroke-width="1.6" stroke-dasharray="9 9" opacity="${v.dash}"/>` +
           cars
             .map(({ img }, i) => {
-              const [x, w] = PARKING[cars.length][i];
+              const x = PARKING[cars.length][i];
               return img
-                ? `<image href="${esc(img)}" x="${x}" y="20" width="${w}" height="66" preserveAspectRatio="xMidYMax meet"/>`
-                : plainCar(c, colors[i], x + (w - 120) / 2, 3);
+                ? `<image href="${esc(img)}" x="${x}" y="20" width="124" height="66" preserveAspectRatio="xMidYMax meet"/>`
+                : plainCar(v, colors[i], x + 20);
             })
-            .join("") +
-          ground(c.road)
+            .join("")
         );
       },
     },
@@ -583,7 +601,7 @@
       const narrow = Boolean(root.narrow);
       const st = {};
       for (const k of scene ? scene.keys : []) st[k] = this.value(cfg.sceneState?.[k]);
-      const bandBg = scene ? c[scene.bg] : c.sky;
+      const bandBg = scene ? (scene.band ? scene.band(mode) : c[scene.bg]) : c.sky;
       const views = t(hass, "views");
 
       const tabHtml = tabs
@@ -710,13 +728,18 @@
     .rain path:nth-child(3) { animation-delay: -0.6s; }
     .rain path:nth-child(4) { animation-delay: -0.45s; }
     .robot-away { animation: dh-robot 6s ease-in-out infinite alternate; }
+    .drift { animation: dh-drift 6s ease-in-out infinite alternate; }
+    .drift.slow { animation-duration: 8s; }
+    .twinkle { animation: dh-twinkle 3.2s ease-in-out infinite alternate; }
     .progress { animation: dh-progress 3s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: left center; }
     @keyframes dh-blink { 0% { opacity: 1; } 100% { opacity: 0.25; } }
     @keyframes dh-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
     @keyframes dh-rain { 0% { transform: translateY(-6px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(18px); opacity: 0; } }
     @keyframes dh-robot { 0% { transform: translateX(0); } 100% { transform: translateX(-150px); } }
+    @keyframes dh-drift { 0% { translate: 0 0; } 100% { translate: 6px 0; } }
+    @keyframes dh-twinkle { 0% { opacity: 0.8; } 100% { opacity: 0.2; } }
     @keyframes dh-progress { 0% { transform: scaleX(0.3); } 100% { transform: scaleX(1); } }
-    @media (prefers-reduced-motion: reduce) { .blink, .pulse, .rain path, .robot-away, .progress { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { .blink, .pulse, .rain path, .robot-away, .progress, .drift, .twinkle { animation: none; } }
   `;
 
   if (!customElements.get(TAG)) customElements.define(TAG, DashboardHeaderBanner);
