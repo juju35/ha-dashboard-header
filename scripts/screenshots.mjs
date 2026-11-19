@@ -52,6 +52,14 @@ const THEMES = {
 // The MDI icons the page uses, from @mdi/js (mdi:foo-bar → mdiFooBar).
 const ICONS = Object.fromEntries(
   [
+    "home-assistant",
+    "devices",
+    "car",
+    "lightning-bolt",
+    "server",
+    "shield-home",
+    "calendar-heart",
+    "tree",
     "menu",
     "magnify",
     "comment-processing-outline",
