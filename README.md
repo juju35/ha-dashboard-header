@@ -92,8 +92,13 @@ dashboard_header:
     lights: light.all_lights
 views:
   - title: Home
-  - title: Terrace
+  - title: Garage
     dashboard_header:          # this view only
+      scene: voitures
+      scene_state:
+        vehicles: [image.suv_picture, image.city_car_picture]
+  - title: Terrace
+    dashboard_header:
       scene: exterieur
       scene_state:
         rain: binary_sensor.rain_next_hour
@@ -128,7 +133,7 @@ Every option can be set again in a view's own `dashboard_header:` block; it over
 | `equipements` | `vacuum` | The robot leaves its dock and sweeps while `cleaning` / `returning`. |
 | | `appliance` | A programme bar runs on the dishwasher when on. |
 | | `printer` | The printer LED blinks red when on (an alert). |
-| `voitures` | `vehicles` | `1` or `2` cars on the road (default 2). |
+| `voitures` | `vehicles` | The cars parked on the road, up to three: a list of picture entities (the `image.*` entity of the car's integration or of [ha-renault-picture](https://github.com/juju35/ha-renault-picture), a device tracker with a picture) or picture URLs, each drawn as the car's own picture as in [ha-vehicle-card](https://github.com/juju35/ha-vehicle-card); or a number of plain cars (default 2). |
 | `energie` | `tempo` | The meter's screen in today's Tempo color (`bleu`/`blue`, `blanc`/`white`, `rouge`/`red`). |
 | | `power` | The meter's bolt pulses when on. |
 | `systeme` | `alert` | One rack LED blinks amber (`warning`, or any "on" state) or red (`error`, `critical`). |

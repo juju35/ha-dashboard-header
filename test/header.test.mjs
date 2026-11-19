@@ -79,6 +79,21 @@ test("Tempo and bin colors understand French and English", () => {
   assert.equal(dh.binColor("#abcdef"), "#abcdef");
 });
 
+test("cars scene: picture entities, URLs and objects, or a number of plain cars (three at most)", () => {
+  const hass = { states: { "image.suv": { attributes: { entity_picture: "/api/image_proxy/image.suv?token=x" } }, "image.none": { attributes: {} } } };
+  assert.deepEqual(
+    dh.vehicleList(["image.suv", "/local/car.png", { picture: "image.suv" }, "image.x"], hass).map((v) => v.img),
+    ["/api/image_proxy/image.suv?token=x", "/local/car.png", "/api/image_proxy/image.suv?token=x"],
+  );
+  assert.deepEqual(dh.vehicleList(["image.none", "not a url"], hass).map((v) => v.img), [null, null]);
+  assert.equal(dh.vehicleList(undefined).length, 2);
+  assert.equal(dh.vehicleList(1).length, 1);
+  assert.equal(dh.vehicleList("9").length, 3);
+  const svg = dh.SCENES.voitures.draw(sky("light"), { vehicles: ["image.suv", "x"] }, dh.PALETTE.light, "light", hass);
+  assert.match(svg, /<image href="\/api\/image_proxy\/image\.suv\?token=x"/);
+  assert.equal((svg.match(/<image /g) || []).length, 1);
+});
+
 test("templates are recognised", () => {
   assert.equal(dh.isTemplate("{{ states('sensor.x') }}"), true);
   assert.equal(dh.isTemplate("{% if x %}a{% endif %}"), true);
@@ -93,7 +108,7 @@ test("every scene draws a complete SVG in both themes, whatever its state", () =
       for (const st of states) {
         const svg = scene.draw(sky(mode), st, dh.PALETTE[mode], mode);
         assert.doesNotMatch(svg, /undefined|NaN|null/, `${name} ${mode}`);
-        assert.ok(svg.includes('y="86"') && svg.includes('height="4"'), `${name}: 4 px ground bar`);
+        assert.ok((svg.includes('y="86"') && svg.includes('height="4"')) || (svg.includes('y="80"') && svg.includes('height="10"')), `${name}: ground bar or road`);
         const open = (svg.match(/<g[ >]/g) || []).length;
         assert.equal(open, (svg.match(/<\/g>/g) || []).length, `${name}: balanced groups`);
       }

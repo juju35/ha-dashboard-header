@@ -135,6 +135,10 @@ async function openPage(browser, s) {
     console.error(`pageerror (${s.file}): ${err.message}`);
     pageErrors.push(`${s.file}: ${err.message}`);
   });
+  // The car pictures of the cars scene (scripts/pictures, from ha-vehicle-card).
+  await page.route("https://pictures.test/**", (route) =>
+    route.fulfill({ contentType: "image/webp", body: readFileSync(`${root}scripts/pictures/${new URL(route.request().url()).pathname.slice(1)}`) }),
+  );
   await page.setContent(pageHtml(s.theme, s.width));
   await page.addScriptTag({ content: STAND_INS });
   const dash = DASHBOARDS[s.scene];
