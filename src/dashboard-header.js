@@ -134,11 +134,32 @@
     (led ? `<circle class="${led.blink ? "blink" : ""}" cx="${x + 57}" cy="75" r="2.2" fill="${led.color}"/>` : "");
   const tree = (c, x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c.tree}"/><rect x="${x - 2}" y="${y + 4}" width="4" height="${86 - y - 4}" fill="${c.tree}"/>`;
   const pylon = (c, x) => `<path d="M${x - 10} 86 L${x} 24 L${x + 10} 86 M${x - 6} 60 H${x + 6} M${x - 4} 44 H${x + 4} M${x - 14} 30 H${x + 14}" fill="none" stroke="${c.line}" stroke-width="2"/>`;
-  const car = (c, color, transform = "") =>
-    `<g${transform ? ` transform="${transform}"` : ""}>` +
-    `<path d="M860 72 L866 58 Q872 50 884 49 L936 48 Q950 48 960 56 L972 62 Q980 63 980 70 V72 Z" fill="${color}"/>` +
-    `<path d="M876 57 L882 52 H906 V58 Z M912 52 H934 L946 58 H912 Z" fill="${c.glassWin}"/>` +
-    `<circle cx="884" cy="73" r="7" fill="${c.tyre}"/><circle cx="956" cy="73" r="7" fill="${c.tyre}"/></g>`;
+  // ha-vehicle-card's plain car (rnSceneCar), drawn when a vehicle has no picture.
+  const plainCar = (c, color, x, scale) =>
+    `<g transform="translate(${x} 82) scale(${scale})"><path d="M0 -6 Q1 -11 8 -12 L14 -16 H26 L33 -12 Q40 -11 40 -6 V-2 H0Z" fill="${color}"/>` +
+    `<path d="M15 -15 H25 L30 -12 H11Z" fill="${c.glassWin}"/><circle cx="9" cy="-2" r="3.4" fill="${c.tyre}"/><circle cx="31" cy="-2" r="3.4" fill="${c.tyre}"/></g>`;
+  // ha-vehicle-card's street lamp (lit at night) and bush.
+  const streetLamp = (c, x, night) =>
+    (night ? `<circle cx="${x + 8}" cy="34" r="22" fill="${c.lampOn}" opacity="0.22"/>` : "") +
+    `<rect x="${x}" y="32" width="2" height="54" fill="${c.line}"/>` +
+    `<path d="M${x + 1} 33 Q${x + 1} 28 ${x + 7} 28 H${x + 12}" fill="none" stroke="${c.line}" stroke-width="1.8"/>` +
+    `<rect x="${x + 6}" y="27" width="11" height="3.6" rx="1.5" fill="${c.line}"/>` +
+    `<rect x="${x + 7.5}" y="30.4" width="8" height="1.8" rx="0.9" fill="${night ? c.lampOn : c.lamp}"/>`;
+  // The vehicles of the cars scene: a list of picture entities (image.*, or any entity with an entity_picture, e.g.
+  // the device tracker), picture URLs, or { picture } objects; or a number of plain cars. At most three.
+  const vehicleList = (raw, hass) => {
+    const picture = (v) => {
+      if (v && typeof v === "object") return picture(v.picture ?? v.entity ?? v.image);
+      if (typeof v !== "string" || !v) return null;
+      if (ENTITY_ID.test(v)) return hass?.states?.[v]?.attributes?.entity_picture || null;
+      return /^(https?:\/\/|\/)/.test(v) ? v : null;
+    };
+    if (Array.isArray(raw)) return raw.slice(0, 3).map((v) => ({ img: picture(v) }));
+    const n = Math.max(1, Math.min(3, Number.parseInt(raw ?? 2, 10) || 2));
+    return Array.from({ length: n }, () => ({ img: null }));
+  };
+  // Where each vehicle parks on the road (x of the box, box width), for one to three vehicles.
+  const PARKING = { 1: [[1080, 190]], 2: [[1010, 170], [1180, 170]], 3: [[930, 150], [1080, 150], [1230, 150]] };
 
   const SCENES = {
     maison: {
@@ -188,19 +209,29 @@
       accent: "cyan",
       bg: "sky",
       keys: ["vehicles"],
-      draw: (c, st, p) => {
-        const count = Math.max(1, Math.min(2, Number.parseInt(st.vehicles ?? 2, 10) || 2));
+      // The roadside of ha-vehicle-card: lamp, bush, road; each car is its own picture (the official photo of
+      // ha-renault-picture, the integration's image entity…) parked on the road, or ha-vehicle-card's plain car.
+      draw: (c, st, p, mode, hass) => {
+        const cars = vehicleList(st.vehicles, hass);
+        const night = mode === "dark";
+        const colors = [p.cyan, p.amber, p.violet];
         return (
-          stars(c, [[700, 20, 1.2], [1180, 16, 1]]) +
-          `<circle cx="1300" cy="28" r="12" fill="${c.sun}"/>` +
+          stars(c, [[700, 20, 1.2], [880, 12, 1], [1180, 16, 1], [1330, 26, 1.2]]) +
+          `<circle cx="840" cy="26" r="12" fill="${c.sun}"/>` +
+          `<g fill="${c.cloud}"><ellipse cx="720" cy="24" rx="30" ry="8"/><ellipse cx="740" cy="19" rx="18" ry="8"/></g>` +
           hills(c, "M0 70 Q200 52 400 66 T800 60 T1400 64 V90 H0z") +
-          `<rect x="0" y="74" width="1600" height="12" fill="${c.asphalt}"/>` +
-          `<path d="M0 80 H1600" stroke="#ffffff" stroke-width="2" stroke-dasharray="18 14" opacity="0.7"/>` +
-          `<rect x="960" y="40" width="22" height="34" rx="3" fill="${c.appl}" stroke="${c.line}"/>` +
-          `<rect x="964" y="46" width="14" height="8" rx="1" fill="${p.cyan}"/>` +
-          `<path d="M982 52 h6 v14" fill="none" stroke="${c.line}" stroke-width="2"/>` +
-          car(c, p.cyan, "translate(200 0)") +
-          (count > 1 ? car(c, p.amber, "translate(549 11) scale(0.85)") : "") +
+          streetLamp(c, 960, night) +
+          `<g fill="${c.tree}"><circle cx="1374" cy="70" r="11"/><circle cx="1360" cy="75" r="8"/></g>` +
+          `<rect x="0" y="76" width="1600" height="10" fill="${c.asphalt}"/>` +
+          `<path d="M0 81 H1600" stroke="#ffffff" stroke-width="2" stroke-dasharray="14 14" opacity="0.75"/>` +
+          cars
+            .map(({ img }, i) => {
+              const [x, w] = PARKING[cars.length][i];
+              return img
+                ? `<image href="${esc(img)}" x="${x}" y="20" width="${w}" height="66" preserveAspectRatio="xMidYMax meet"/>`
+                : plainCar(c, colors[i], x + (w - 120) / 2, 3);
+            })
+            .join("") +
           ground(c.road)
         );
       },
@@ -477,7 +508,7 @@
     entities() {
       const c = this._cfg;
       if (!c) return [];
-      const list = [c.status?.entity, ...Object.values(c.sceneState || {})];
+      const list = [c.status?.entity, ...Object.values(c.sceneState || {}).flat()].map((v) => (v && typeof v === "object" ? v.picture ?? v.entity ?? v.image : v));
       return list.filter((v) => typeof v === "string" && ENTITY_ID.test(v));
     }
 
@@ -578,7 +609,7 @@
           // On a phone the pills get their own scrolling row under the bar.
           (showTabs && narrow ? `<nav class="pills row" aria-label="${esc(views)}">${tabHtml}</nav>` : "")
         : `<div class="bar band" style="background:${esc(bandBg)}">` +
-          (scene ? `<svg class="scene" viewBox="0 0 ${narrow ? 1250 : 1600} 90" preserveAspectRatio="xMaxYMax slice" aria-hidden="true">${scene.draw(c, st, p, mode)}</svg>` : "") +
+          (scene ? `<svg class="scene" viewBox="0 0 ${narrow ? 1250 : 1600} 90" preserveAspectRatio="xMaxYMax slice" aria-hidden="true">${scene.draw(c, st, p, mode, hass)}</svg>` : "") +
           `${identity}${pill}</div>` +
           (showTabs ? `<nav class="tabs" aria-label="${esc(views)}">${tabHtml}</nav>` : "");
 
@@ -779,6 +810,6 @@
   }, 1500);
   queue();
 
-  window.dashboardHeader = { VERSION, SCENES, PALETTE, STRINGS, resolveConfig, visibleViews, truthy, colorOf, tempoColor, binColor, sceneName, isTemplate, sync };
+  window.dashboardHeader = { VERSION, SCENES, vehicleList, PALETTE, STRINGS, resolveConfig, visibleViews, truthy, colorOf, tempoColor, binColor, sceneName, isTemplate, sync };
   console.info(`%c DASHBOARD-HEADER %c ${VERSION} `, "color:#fff;background:#2459bd;font-weight:700", "color:#2459bd;background:#fff");
 })();
