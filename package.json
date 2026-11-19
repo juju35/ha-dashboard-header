@@ -1,0 +1,18 @@
+{
+  "name": "ha-dashboard-header",
+  "version": "1.0.0",
+  "description": "Illustrated dashboard headers for Home Assistant, matching the ha-* cards: a 90 px scene per dashboard with text tabs, or a compact bar with pill tabs.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/build.mjs && node --check dist/dashboard-header.js",
+    "test": "node --test test/*.test.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@mdi/js": "^7.4.47",
+    "playwright": "^1.65.1"
+  }
+}
