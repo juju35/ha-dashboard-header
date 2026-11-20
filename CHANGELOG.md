@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.1 - 2026-11-20
+
+### Fixes
+- No sidebar button (☰) in the header: the banner no longer draws one in front of the title, and Home Assistant's own stays hidden.
+
 ## 1.3.0 - 2026-11-20
 
 ### Features

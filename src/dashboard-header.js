@@ -505,8 +505,8 @@
   };
 
   // The native toolbar is kept (sidebar button, search, Assist, menu) and laid over the band; its own title and
-  // tabs are hidden, the banner draws them. The sidebar button is hidden too: the banner draws its own in front of the
-  // title, shown whenever Home Assistant's would be (phones, sidebar always hidden), and opening the sidebar the same way.
+  // tabs are hidden, the banner draws them. The sidebar button (☰) is hidden too: the sidebar stays reachable by its
+  // swipe on phones and from the sidebar itself on wider screens.
   const ROOT_CSS = `
     .header { background: var(--dh-top-bg, transparent) !important; box-shadow: none !important; backdrop-filter: none !important;
       color: var(--dh-text) !important; }
@@ -695,17 +695,8 @@
         ? `<span class="pill" role="status" title="${esc(statusText)}" style="color:${esc(statusColor)}"><span class="dot" style="background:${esc(statusColor)}"></span><span class="label">${esc(statusText)}</span></span>`
         : "";
 
-      // Home Assistant's sidebar button decides when it shows (phones, sidebar always hidden, not with the companion
-      // app's own sidebar…); the banner mirrors it, notification dot included.
-      const native = root.shadowRoot?.querySelector(".toolbar ha-menu-button");
-      const showMenu = native ? (typeof native._show === "boolean" ? native._show : Boolean(native.shadowRoot?.querySelector("ha-icon-button"))) : false;
-      const menuDot = showMenu && Boolean(native._hasNotifications);
-      const menuLabel = hass?.localize?.("ui.sidebar.sidebar_toggle") || "Menu";
-      const menu = showMenu
-        ? `<button class="menu" type="button" aria-label="${esc(menuLabel)}" title="${esc(menuLabel)}"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"/></svg>${menuDot ? '<span class="menu-dot"></span>' : ""}</button>`
-        : "";
       const identity =
-        `<div class="identity">${menu}<span class="badge" style="color:${esc(accent)}">${this._icon(cfg.icon, 22)}</span>` +
+        `<div class="identity"><span class="badge" style="color:${esc(accent)}">${this._icon(cfg.icon, 22)}</span>` +
         `<span class="names"><span class="title">${esc(title)}</span>${subtitle ? `<span class="sub">${esc(subtitle)}</span>` : ""}</span></div>`;
 
       const body = compact
@@ -729,9 +720,6 @@
             this._navigate(a.dataset.path);
           });
         }
-        this.shadowRoot.querySelector("button.menu")?.addEventListener("click", () =>
-          this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true })),
-        );
         // The current tab in sight in a scrolling tab row (without scrolling the page).
         const nav = this.shadowRoot.querySelector("nav");
         const act = nav?.querySelector(".tab.active");
@@ -775,13 +763,6 @@
     .badge { width: 40px; height: 40px; border-radius: 50%; flex: none; display: inline-flex; align-items: center; justify-content: center;
       background: var(--glass); }
     .is-compact .badge { background: color-mix(in srgb, var(--accent) 14%, transparent); }
-    .menu { position: relative; flex: none; width: 44px; height: 44px; margin-inline-start: -6px; margin-inline-end: -4px; border-radius: 50%;
-      border: none; padding: 0; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text);
-      background: transparent; }
-    .is-compact .menu { color: var(--primary-text-color); }
-    .menu:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-    .menu-dot { position: absolute; top: 8px; right: 8px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent-color, #ff9800);
-      border: 2px solid var(--card-background-color, #fff); box-sizing: border-box; }
     .names { display: flex; flex-direction: column; min-width: 0; }
     .title { font-size: 20px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sub { font-size: 13px; line-height: 1.3; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -115,7 +115,7 @@ customElements.define("hui-root", class extends HTMLElement {
     </div></slot></div>
     <div id="view"><div class="cards"><div class="card"></div><div class="card"></div><div class="card"></div><div class="card"></div><div class="card"></div><div class="card"></div></div></div></div>\`;
   }
-  // Like Home Assistant's, the sidebar button only shows on phones (its _show), the notification dot with it.
+  // Like Home Assistant's, the sidebar button only shows on phones (its _show); the header hides it.
   set narrow(v) {
     this._narrow = v;
     this.shadowRoot.querySelector(".wrap").classList.toggle("narrow", v);
