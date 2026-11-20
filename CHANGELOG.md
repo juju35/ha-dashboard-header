@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0 - 2026-11-19
+
+### Features
+- Cars scene layouts: `driveway` (the cars in front of the house and its garage, a car away leaves a dashed spot) and `station` (price totem, canopy, the car with a low tank at the pump); vehicles accept `{ picture, home, low }`, prices `{ label: entity / template / value }`.
+
+### Fixes
+- The sidebar button is back on phones: the banner draws it in front of the title whenever Home Assistant's would show (notification dot included) and opens the sidebar the same way.
+
 ## 1.2.0 - 2026-11-19
 
 ### Features

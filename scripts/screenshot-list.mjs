@@ -43,6 +43,26 @@ export const shots = [
   // The illustrated header of each scene, desktop.
   ...Object.keys(DASHBOARDS).flatMap((scene) => twins(`scene-${scene}`, scene)),
   // Compact mode, desktop and phone; folded on scroll; the illustrated header on a phone.
+  // The cars scene's other layouts: the driveway (the compact is away, its spot left empty) and the station.
+  ...twins("cars-driveway", "voitures", {
+    header: {
+      status: { text: "1 away", color: "blue" },
+      scene_state: {
+        layout: "driveway",
+        vehicles: [{ picture: "https://pictures.test/espace.webp", home: "home" }, { picture: "https://pictures.test/captur.webp", home: "not_home" }],
+      },
+    },
+  }),
+  ...twins("cars-station", "voitures", {
+    header: {
+      status: { text: "Refuel", color: "red" },
+      scene_state: {
+        layout: "station",
+        prices: { Diesel: "1.629", "SP95-E10": "1.739" },
+        vehicles: ["https://pictures.test/espace.webp", { picture: "https://pictures.test/captur.webp", low: true }],
+      },
+    },
+  }),
   ...twins("compact", "maison", { header: { mode: "compact" } }),
   ...twins("compact-phone", "maison", { width: 390, narrow: true, header: { mode: "compact" } }),
   ...twins("collapsed", "maison", { scroll: 200 }),

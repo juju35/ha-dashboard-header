@@ -133,7 +133,9 @@ Every option can be set again in a view's own `dashboard_header:` block; it over
 | `equipements` | `vacuum` | The robot leaves its dock and sweeps while `cleaning` / `returning`. |
 | | `appliance` | A programme bar runs on the dishwasher when on. |
 | | `printer` | The printer LED blinks red when on (an alert). |
-| `voitures` | `vehicles` | The cars parked on the road, up to three: a list of picture entities (the `image.*` entity of the car's integration or of [ha-renault-picture](https://github.com/juju35/ha-renault-picture), a device tracker with a picture) or picture URLs, each drawn as the car's own picture as in [ha-vehicle-card](https://github.com/juju35/ha-vehicle-card); or a number of plain cars (default 2). |
+| `voitures` | `vehicles` | The cars parked on the road, up to three: a list of picture entities (the `image.*` entity of the car's integration or of [ha-renault-picture](https://github.com/juju35/ha-renault-picture), a device tracker with a picture) or picture URLs, each drawn as the car's own picture as in [ha-vehicle-card](https://github.com/juju35/ha-vehicle-card); or a number of plain cars (default 2). An item can be an object `{ picture, home, low }`: `home` (a device tracker, a binary sensor or a template) says whether the car is at home, `low` whether its tank is low. |
+| | `layout` | `road` (default), `driveway` — the cars on the driveway of the house, a car away leaves its spot empty —, or `station` — a price totem, the car with a low tank at the pump. A template can switch it (e.g. `station` when a range drops low). |
+| | `prices` | Station layout: up to two prices for the totem, `{ label: entity / template / value }`, e.g. `{ Diesel: sensor.cheapest_diesel }`. |
 | `energie` | `tempo` | The meter's screen in today's Tempo color (`bleu`/`blue`, `blanc`/`white`, `rouge`/`red`). |
 | | `power` | The meter's bolt pulses when on. |
 | `systeme` | `alert` | One rack LED blinks amber (`warning`, or any "on" state) or red (`error`, `critical`). |
@@ -160,6 +162,15 @@ Every option can be set again in a view's own `dashboard_header:` block; it over
 | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-securite.png" alt="Security scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-securite-dark.png" alt="Security scene, dark" width="420"> |
 | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-famille.png" alt="Family scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-famille-dark.png" alt="Family scene, dark" width="420"> |
 | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-exterieur.png" alt="Outdoor scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-exterieur-dark.png" alt="Outdoor scene, dark" width="420"> |
+
+### Cars: driveway and station layouts
+
+`layout: driveway` (one car away) and `layout: station` (prices, the car with a low tank at the pump):
+
+| Light | Dark |
+|---|---|
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/cars-driveway.png" alt="Cars on the driveway" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/cars-driveway-dark.png" alt="Cars on the driveway, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/cars-station.png" alt="Cars at the station" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/cars-station-dark.png" alt="Cars at the station, dark" width="420"> |
 
 ### Compact mode and folded header
 
