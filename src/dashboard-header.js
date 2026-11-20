@@ -841,7 +841,7 @@
   if (!customElements.get(TAG)) customElements.define(TAG, DashboardHeaderBanner);
 
   // ---- Wiring: follow the current dashboard, its view, edit mode and scrolling ----
-  const state = { root: null, banner: null, observer: null, unsubEvents: null, conn: null, queued: false };
+  const state = { root: null, banner: null, observer: null, unsubEvents: null, conn: null, watchKey: null, queued: false };
 
   const deactivate = (root) => {
     if (!root) return;
@@ -850,16 +850,27 @@
     for (const v of ["--header-height", "--dh-bar-h", "--dh-text", "--dh-btn-bg", "--dh-btn-border", "--dh-top-bg"]) root.style.removeProperty(v);
   };
 
+  // Only the entities the banner reads (subscribe_entities with their ids): a state_changed subscription would bring
+  // every state change of the whole home to the browser a second time. Subscribed again when the list changes (another
+  // view, a dashboard edit); none without entities.
   const watchStates = (banner) => {
     const conn = banner.hass?.connection;
-    if (!conn?.subscribeEvents || conn === state.conn) return;
+    const ids = [...new Set(banner.entities())].sort();
+    const key = ids.join(",");
+    if (conn === state.conn && key === state.watchKey) return;
     state.unsubEvents?.then?.((u) => u?.())?.catch?.(() => {});
+    state.unsubEvents = null;
     state.conn = conn;
+    state.watchKey = key;
+    if (!conn?.subscribeMessage || !ids.length) return;
     state.unsubEvents = conn
-      .subscribeEvents((ev) => {
-        const b = state.banner;
-        if (b?.isConnected && b.entities().includes(ev?.data?.entity_id)) b.render();
-      }, "state_changed")
+      .subscribeMessage(
+        () => {
+          const b = state.banner;
+          if (b?.isConnected) b.render();
+        },
+        { type: "subscribe_entities", entity_ids: ids },
+      )
       .catch(() => {});
   };
 
@@ -929,6 +940,6 @@
   }, 1500);
   queue();
 
-  window.dashboardHeader = { VERSION, SCENES, vehicleList, PALETTE, STRINGS, resolveConfig, visibleViews, truthy, colorOf, tempoColor, binColor, sceneName, isTemplate, sync };
+  window.dashboardHeader = { VERSION, SCENES, vehicleList, PALETTE, STRINGS, resolveConfig, visibleViews, truthy, colorOf, tempoColor, binColor, sceneName, isTemplate, sync, watchStates };
   console.info(`%c DASHBOARD-HEADER %c ${VERSION} `, "color:#fff;background:#2459bd;font-weight:700", "color:#2459bd;background:#fff");
 })();

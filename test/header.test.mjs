@@ -154,3 +154,18 @@ test("a CSS color stays one value: no other declaration can ride along", () => {
   assert.equal(dh.colorOf("url(//example.com/x.png)", "light", "x"), "x");
   assert.equal(dh.binColor('red" onload="x'), dh.binColor("gris"));
 });
+
+test("states: only the entities the banner reads are subscribed, again when they change, none without any", () => {
+  const sent = [];
+  const conn = { subscribeMessage: (cb, msg) => (sent.push(msg), Promise.resolve(() => sent.push("unsub"))) };
+  let ids = ["sensor.b", "sensor.a", "sensor.a"];
+  const banner = { hass: { connection: conn }, entities: () => ids, isConnected: true };
+  dh.watchStates(banner);
+  dh.watchStates(banner);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].type, "subscribe_entities");
+  assert.deepEqual([...sent[0].entity_ids], ["sensor.a", "sensor.b"]);
+  ids = [];
+  dh.watchStates(banner);
+  assert.equal(sent.length, 1);
+});
