@@ -94,6 +94,22 @@ test("cars scene: picture entities, URLs and objects, or a number of plain cars 
   assert.equal((svg.match(/<image /g) || []).length, 1);
 });
 
+test("cars scene layouts: driveway leaves an away car's spot empty, station puts the low car at the pump", () => {
+  const hass = { states: { "device_tracker.b": { state: "not_home" } }, locale: { language: "en" } };
+  const vehicles = [{ picture: "/a.png", home: "home" }, { picture: "/b.png", home: "device_tracker.b", low: true }];
+  assert.deepEqual(dh.vehicleList(vehicles, hass).map((v) => [v.away, v.low]), [[false, false], [true, true]]);
+  // home and low can be templates, rendered by Home Assistant
+  const tpl = [{ picture: "/a.png", home: "{{ is_state('x', 'home') }}", low: "{{ 1 < 2 }}" }];
+  assert.deepEqual(dh.vehicleList(tpl, hass, () => "True").map((v) => [v.away, v.low]), [[false, true]]);
+  const drive = dh.SCENES.voitures.draw(sky("light"), { vehicles, layout: "driveway" }, dh.PALETTE.light, "light", hass);
+  assert.equal((drive.match(/<image /g) || []).length, 1);
+  assert.match(drive, /stroke-dasharray="5 4"/);
+  const station = dh.SCENES.voitures.draw(sky("light"), { vehicles, layout: "station", prices: { Diesel: "1.629" } }, dh.PALETTE.light, "light", hass, (x) => x);
+  assert.match(station, />Diesel</);
+  assert.match(station, />1\.629</);
+  assert.ok(station.indexOf("/b.png") < station.indexOf("/a.png"), "the low car comes first, at the pump");
+});
+
 test("templates are recognised", () => {
   assert.equal(dh.isTemplate("{{ states('sensor.x') }}"), true);
   assert.equal(dh.isTemplate("{% if x %}a{% endif %}"), true);

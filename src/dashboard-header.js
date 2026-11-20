@@ -138,9 +138,9 @@
   // drifting clouds, two hills, street lamp (lit at night), bush and 10 px road; the cars park on the road.
   const VC = {
     light: { far: "#a7d39f", hill: "#86c27f", bush: "#4f9a3a", pole: "#5f6b7a", bulb: "#e8e0d0", glass: "#cfe6f7", tyre: "#22262b",
-      road: "#858c94", roadLine: "#6f767d", dash: 0.85, cloud: 0.92 },
+      road: "#858c94", roadLine: "#6f767d", dash: 0.85, cloud: 0.92, drive: "#c4c9cf", canopy: "#f4f6f8", pump: "#f7f5f1", board: "#2e3440", boardText: "#e6e8eb" },
     dark: { far: "#1d3a4a", hill: "#17303d", bush: "#1e3d2a", pole: "#7d8793", bulb: "#ffd27a", glass: "#3b4b5e", tyre: "#22262b",
-      road: "#2c323b", roadLine: "#3a414c", dash: 0.5, cloud: 0.1 },
+      road: "#2c323b", roadLine: "#3a414c", dash: 0.5, cloud: 0.1, drive: "#272c34", canopy: "#3a4256", pump: "#3a4256", board: "#11141a", boardText: "#c9d0db" },
   };
   const VC_SKY = {
     light: "linear-gradient(90deg, #f1f8ff 0%, #e2f1fd 34%, #b9def8 70%, #9fd0f3 100%)",
@@ -148,8 +148,8 @@
   };
   const VC_CLOUD = "M-14,4 C-17,4 -18,0 -14.5,-1 C-14,-5 -8,-6 -6,-3 C-4,-8 4,-8 5,-2 C9,-3 12,0 10,4 Z";
   // ha-vehicle-card's plain car (rnSceneCar), drawn when a vehicle has no picture.
-  const plainCar = (v, color, x) =>
-    `<g transform="translate(${x} 79) scale(2.1)"><path d="M0 -6 Q1 -11 8 -12 L14 -16 H26 L33 -12 Q40 -11 40 -6 V-2 H0Z" fill="${color}"/>` +
+  const plainCar = (v, color, x, y = 79) =>
+    `<g transform="translate(${x} ${y}) scale(2.1)"><path d="M0 -6 Q1 -11 8 -12 L14 -16 H26 L33 -12 Q40 -11 40 -6 V-2 H0Z" fill="${color}"/>` +
     `<path d="M15 -15 H25 L30 -12 H11Z" fill="${v.glass}"/><circle cx="9" cy="-2" r="3.4" fill="${v.tyre}"/><circle cx="31" cy="-2" r="3.4" fill="${v.tyre}"/></g>`;
   const streetLamp = (v, x, night) =>
     (night ? `<circle cx="${x + 7.6}" cy="40" r="16" fill="#ffd27a" opacity="0.3"/>` : "") +
@@ -161,16 +161,30 @@
   const PARKING = { 1: [1150], 2: [1066, 1196], 3: [1000, 1116, 1232] };
   // The vehicles of the cars scene: a list of picture entities (image.*, or any entity with an entity_picture, e.g.
   // the device tracker), picture URLs, or { picture } objects; or a number of plain cars. At most three.
-  const vehicleList = (raw, hass) => {
+  const vehicleList = (raw, hass, val) => {
     const picture = (v) => {
       if (v && typeof v === "object") return picture(v.picture ?? v.entity ?? v.image);
+      // (an entity id of a tracker or sensor without a picture gives no picture: the plain car is drawn)
       if (typeof v !== "string" || !v) return null;
       if (ENTITY_ID.test(v)) return hass?.states?.[v]?.attributes?.entity_picture || null;
       return /^(https?:\/\/|\/)/.test(v) ? v : null;
     };
-    if (Array.isArray(raw)) return raw.slice(0, 3).map((v) => ({ img: picture(v) }));
+    // An object can also tell whether the car is at home ({ home: device_tracker / binary sensor / template value })
+    // and whether its tank is low ({ low: … }), for the driveway and station layouts.
+    const flag = (v) => {
+      if (v == null) return undefined;
+      if (isTemplate(v)) return val ? val(v) : undefined;
+      if (typeof v === "string" && ENTITY_ID.test(v)) return hass?.states?.[v]?.state;
+      return v;
+    };
+    if (Array.isArray(raw))
+      return raw.slice(0, 3).map((v) => {
+        const o = v && typeof v === "object" ? v : {};
+        const home = flag(o.home);
+        return { img: picture(v), away: home !== undefined && !(home === "home" || truthy(home)), low: truthy(flag(o.low)) };
+      });
     const n = Math.max(1, Math.min(3, Number.parseInt(raw ?? 2, 10) || 2));
-    return Array.from({ length: n }, () => ({ img: null }));
+    return Array.from({ length: n }, () => ({ img: null, away: false, low: false }));
   };
 
   const SCENES = {
@@ -220,15 +234,25 @@
       icon: "mdi:car",
       accent: "cyan",
       band: (mode) => VC_SKY[mode],
-      keys: ["vehicles"],
+      keys: ["vehicles", "layout", "prices"],
       // ha-vehicle-card's roadside; each car is its own picture (the official photo of ha-renault-picture, the
-      // integration's image entity…) parked on the road, or ha-vehicle-card's plain car.
-      draw: (c, st, p, mode, hass) => {
+      // integration's image entity…) or ha-vehicle-card's plain car. Three layouts: on the road, on the driveway of
+      // the house (a car away leaves its spot empty), at the station (price totem, the low car at the pump).
+      draw: (c, st, p, mode, hass, val) => {
         const v = VC[mode];
         const night = mode === "dark";
-        const cars = vehicleList(st.vehicles, hass);
+        const cars = vehicleList(st.vehicles, hass, val);
+        const layout = /drive|allee|allée|home|maison/.test(String(st.layout ?? "").toLowerCase())
+          ? "driveway"
+          : /station|fuel|pump|carbu/.test(String(st.layout ?? "").toLowerCase())
+            ? "station"
+            : "road";
         const colors = [p.cyan, p.amber, p.violet];
-        return (
+        const car = (k, x, y = 20) =>
+          cars[k].img
+            ? `<image href="${esc(cars[k].img)}" x="${x}" y="${y}" width="124" height="66" preserveAspectRatio="xMidYMax meet"/>`
+            : plainCar(v, colors[k], x + 20, y + 59);
+        const sky =
           (night
             ? [[1012, 8], [1044, 18], [1096, 6], [1132, 26], [1166, 8], [1190, 22], [970, 30], [1112, 16], [880, 12], [930, 22]]
                 .map(([x, y], i) => `<circle class="${i % 2 ? "twinkle" : ""}" cx="${x}" cy="${y}" r="0.8" fill="#ffffff" opacity="0.8"/>`)
@@ -238,20 +262,68 @@
           `<path class="drift" transform="translate(1126 14)" d="${VC_CLOUD}" fill="#ffffff" opacity="${v.cloud}"/>` +
           `<path class="drift slow" transform="translate(1174 24) scale(.75)" d="${VC_CLOUD}" fill="#ffffff" opacity="${v.cloud}"/>` +
           `<path d="M880,80 C960,70 1020,64 1100,66 C1180,68 1260,60 1340,62 C1420,64 1500,60 1600,62 L1600,80Z" fill="${v.far}"/>` +
-          `<path d="M840,80 C960,74 1100,75 1600,72 L1600,80Z" fill="${v.hill}"/>` +
-          streetLamp(v, 1010, night) +
-          `<g fill="${v.bush}"><circle cx="1352" cy="72" r="6"/><circle cx="1345" cy="75" r="5"/></g>` +
+          `<path d="M840,80 C960,74 1100,75 1600,72 L1600,80Z" fill="${v.hill}"/>`;
+        const road =
           `<rect x="0" y="80" width="1600" height="10" fill="${v.road}"/><rect x="0" y="80" width="1600" height="1" fill="${v.roadLine}"/>` +
-          `<path d="M0 85 H1600" stroke="#ffffff" stroke-width="1.6" stroke-dasharray="9 9" opacity="${v.dash}"/>` +
-          cars
-            .map(({ img }, i) => {
-              const x = PARKING[cars.length][i];
-              return img
-                ? `<image href="${esc(img)}" x="${x}" y="20" width="124" height="66" preserveAspectRatio="xMidYMax meet"/>`
-                : plainCar(v, colors[i], x + 20);
-            })
-            .join("")
-        );
+          `<path d="M0 85 H1600" stroke="#ffffff" stroke-width="1.6" stroke-dasharray="9 9" opacity="${v.dash}"/>`;
+        const bush = (x) => `<g fill="${v.bush}"><circle cx="${x}" cy="72" r="6"/><circle cx="${x - 7}" cy="75" r="5"/></g>`;
+        const slots = PARKING[cars.length];
+
+        if (layout === "driveway") {
+          // The house and its garage on the left, the cars on the driveway; an away car leaves a dashed spot.
+          const spot = (x) => `<rect x="${x + 14}" y="66" width="96" height="13" rx="4" fill="none" stroke="${v.pole}" stroke-width="1.4" stroke-dasharray="5 4" opacity="0.7"/>`;
+          return (
+            sky +
+            `<rect x="890" y="36" width="112" height="44" fill="${c.house}"/>` +
+            `<polygon points="880,38 946,10 1012,38" fill="${c.roof}"/>` +
+            `<rect x="902" y="46" width="18" height="14" rx="2" fill="${night ? c.winOn : c.winOff}"/>` +
+            `<rect x="930" y="52" width="60" height="28" rx="2" fill="${c.door}"/>` +
+            `<path d="M930 59 H990 M930 66 H990 M930 73 H990" stroke="${c.house}" stroke-width="1" opacity="0.5"/>` +
+            (night ? `<circle cx="996" cy="47" r="9" fill="#ffd27a" opacity="0.3"/>` : "") +
+            `<circle cx="996" cy="47" r="2.2" fill="${night ? "#ffd27a" : v.bulb}"/>` +
+            `<path d="M990 80 L1010 70 H1380 L1400 80 Z" fill="${v.drive}"/>` +
+            bush(1408) +
+            road +
+            slots.map((x, k) => (cars[k].away ? spot(x) : car(k, x, 16))).join("")
+          );
+        }
+
+        if (layout === "station") {
+          // Price totem, canopy, pump; the car with a low tank (else the first) parks at the pump.
+          const prices = st.prices && typeof st.prices === "object" ? Object.entries(st.prices).slice(0, 2) : [];
+          const lang = hass?.locale?.language || hass?.language || "en";
+          const price = (raw) => {
+            const x = val ? val(raw) : raw;
+            const n = Number(x);
+            return x === "" || x == null || Number.isNaN(n) ? esc(x ?? "") : n.toLocaleString(lang, { minimumFractionDigits: 2, maximumFractionDigits: 3 });
+          };
+          const atPump = Math.max(0, cars.findIndex((x) => x.low));
+          const order = [atPump, ...cars.map((_, k) => k).filter((k) => k !== atPump)];
+          const pos = { 1: [1120], 2: [1120, 1250], 3: [1110, 1220, 1330] }[cars.length];
+          return (
+            sky +
+            `<rect x="0" y="76" width="1600" height="4" fill="${v.drive}"/>` +
+            (prices.length
+              ? `<path d="M985 80 V30" stroke="${v.pole}" stroke-width="3"/><rect x="930" y="10" width="110" height="${prices.length * 17 + 8}" rx="5" fill="${v.board}"/>` +
+                prices
+                  .map(
+                    ([label, raw], i) =>
+                      `<text x="938" y="${24 + i * 17}" font-size="9" font-weight="700" fill="${v.boardText}" font-family="inherit">${esc(String(label).slice(0, 9))}</text>` +
+                      `<text x="1032" y="${24 + i * 17}" font-size="10" font-weight="700" text-anchor="end" fill="#f2b33a" font-family="ui-monospace, Menlo, monospace">${price(raw)}</text>`,
+                  )
+                  .join("")
+              : "") +
+            `<rect x="1050" y="18" width="330" height="7" rx="2" fill="${v.canopy}"/><rect x="1050" y="25" width="330" height="3" fill="${p.cyan}"/>` +
+            `<path d="M1070 28 V80 M1360 28 V80" stroke="${v.pole}" stroke-width="4"/>` +
+            `<rect x="1084" y="46" width="22" height="34" rx="3" fill="${v.pump}" stroke="${v.pole}"/>` +
+            `<rect x="1088" y="51" width="14" height="8" rx="1" fill="${p.cyan}"/>` +
+            `<path d="M1106 56 C1118 56 1122 62 1126 70" fill="none" stroke="${v.tyre}" stroke-width="2"/>` +
+            road +
+            order.map((k, i) => car(k, pos[i])).join("")
+          );
+        }
+
+        return sky + streetLamp(v, 1010, night) + bush(1352) + road + slots.map((x, k) => car(k, x)).join("");
       },
     },
     energie: {
@@ -380,6 +452,9 @@
     return s === "none" ? "none" : "maison";
   };
 
+  // Every leaf value of a config block (lists and objects included): the entities and templates it reads.
+  const deepValues = (o) => (o && typeof o === "object" ? Object.values(o).flatMap(deepValues) : [o]);
+
   // ---- Configuration ----
   // The dashboard's `dashboard_header:` block, overlaid by the current view's own block (a view can change the
   // scene, the subtitle… or turn the header off with `enabled: false`).
@@ -430,7 +505,8 @@
   };
 
   // The native toolbar is kept (sidebar button, search, Assist, menu) and laid over the band; its own title and
-  // tabs are hidden, the banner draws them. The sidebar button only shows on phones (docked sidebar: it is empty).
+  // tabs are hidden, the banner draws them. The sidebar button is hidden too: the banner draws its own in front of the
+  // title, shown whenever Home Assistant's would be (phones, sidebar always hidden), and opening the sidebar the same way.
   const ROOT_CSS = `
     .header { background: var(--dh-top-bg, transparent) !important; box-shadow: none !important; backdrop-filter: none !important;
       color: var(--dh-text) !important; }
@@ -440,7 +516,8 @@
     .header .toolbar > * { pointer-events: auto; }
     .header .toolbar > ha-tab-group, .header .toolbar > .main-title { display: none !important; }
     .header .toolbar .action-items { margin-inline-start: auto; gap: 6px; }
-    .narrow .header .toolbar ha-menu-button, .header .toolbar .action-items ha-icon-button {
+    .header .toolbar ha-menu-button { display: none !important; }
+    .header .toolbar .action-items ha-icon-button {
       --ha-icon-button-size: 44px; --mdc-icon-button-size: 44px; width: 44px; height: 44px; border-radius: 50%;
       background: var(--dh-btn-bg); border: var(--dh-btn-border); color: var(--dh-text); box-sizing: border-box; }
   `;
@@ -476,7 +553,7 @@
     // Every template the config uses, rendered live by Home Assistant (render_template subscription).
     _templates() {
       const c = this._cfg;
-      const list = [c.title, c.subtitle, c.status?.text, c.status?.color, ...Object.values(c.sceneState || {})];
+      const list = [c.title, c.subtitle, c.status?.text, c.status?.color, ...deepValues(c.sceneState)];
       return [...new Set(list.filter(isTemplate))];
     }
 
@@ -526,7 +603,7 @@
     entities() {
       const c = this._cfg;
       if (!c) return [];
-      const list = [c.status?.entity, ...Object.values(c.sceneState || {}).flat()].map((v) => (v && typeof v === "object" ? v.picture ?? v.entity ?? v.image : v));
+      const list = [c.status?.entity, ...deepValues(c.sceneState)];
       return list.filter((v) => typeof v === "string" && ENTITY_ID.test(v));
     }
 
@@ -618,8 +695,17 @@
         ? `<span class="pill" role="status" title="${esc(statusText)}" style="color:${esc(statusColor)}"><span class="dot" style="background:${esc(statusColor)}"></span><span class="label">${esc(statusText)}</span></span>`
         : "";
 
+      // Home Assistant's sidebar button decides when it shows (phones, sidebar always hidden, not with the companion
+      // app's own sidebar…); the banner mirrors it, notification dot included.
+      const native = root.shadowRoot?.querySelector(".toolbar ha-menu-button");
+      const showMenu = native ? (typeof native._show === "boolean" ? native._show : Boolean(native.shadowRoot?.querySelector("ha-icon-button"))) : false;
+      const menuDot = showMenu && Boolean(native._hasNotifications);
+      const menuLabel = hass?.localize?.("ui.sidebar.sidebar_toggle") || "Menu";
+      const menu = showMenu
+        ? `<button class="menu" type="button" aria-label="${esc(menuLabel)}" title="${esc(menuLabel)}"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"/></svg>${menuDot ? '<span class="menu-dot"></span>' : ""}</button>`
+        : "";
       const identity =
-        `<div class="identity"><span class="badge" style="color:${esc(accent)}">${this._icon(cfg.icon, 22)}</span>` +
+        `<div class="identity">${menu}<span class="badge" style="color:${esc(accent)}">${this._icon(cfg.icon, 22)}</span>` +
         `<span class="names"><span class="title">${esc(title)}</span>${subtitle ? `<span class="sub">${esc(subtitle)}</span>` : ""}</span></div>`;
 
       const body = compact
@@ -627,7 +713,7 @@
           // On a phone the pills get their own scrolling row under the bar.
           (showTabs && narrow ? `<nav class="pills row" aria-label="${esc(views)}">${tabHtml}</nav>` : "")
         : `<div class="bar band" style="background:${esc(bandBg)}">` +
-          (scene ? `<svg class="scene" viewBox="0 0 ${narrow ? 1250 : 1600} 90" preserveAspectRatio="xMaxYMax slice" aria-hidden="true">${scene.draw(c, st, p, mode, hass)}</svg>` : "") +
+          (scene ? `<svg class="scene" viewBox="0 0 ${narrow ? 1250 : 1600} 90" preserveAspectRatio="xMaxYMax slice" aria-hidden="true">${scene.draw(c, st, p, mode, hass, (x) => this.value(x))}</svg>` : "") +
           `${identity}${pill}</div>` +
           (showTabs ? `<nav class="tabs" aria-label="${esc(views)}">${tabHtml}</nav>` : "");
 
@@ -643,6 +729,9 @@
             this._navigate(a.dataset.path);
           });
         }
+        this.shadowRoot.querySelector("button.menu")?.addEventListener("click", () =>
+          this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true })),
+        );
         // The current tab in sight in a scrolling tab row (without scrolling the page).
         const nav = this.shadowRoot.querySelector("nav");
         const act = nav?.querySelector(".tab.active");
@@ -664,17 +753,14 @@
       this._measureActions();
     }
 
-    // Room left for the native buttons (search, Assist, menu) at the right, and the sidebar button at the left.
+    // Room left for the native buttons (search, Assist, menu) at the right.
     _measureActions() {
       const bar = this.shadowRoot.querySelector(".bar");
       const tb = this._root?.shadowRoot?.querySelector(".toolbar");
       if (!bar || !tb) return;
       const actions = tb.querySelector(".action-items");
-      const lead = tb.querySelector("ha-menu-button");
       const right = actions ? actions.getBoundingClientRect().width : 0;
-      const left = lead?.getBoundingClientRect().width ? lead.getBoundingClientRect().width + 8 : 0;
       bar.style.setProperty("--right", `${Math.ceil(right) + 16}px`);
-      bar.style.setProperty("--left", `${Math.ceil(left)}px`);
     }
   }
 
@@ -682,13 +768,20 @@
     :host { display: block; }
     .dh { font-family: inherit; color: var(--primary-text-color); }
     .bar { position: relative; display: flex; align-items: center; gap: 12px; box-sizing: border-box;
-      padding: 0 calc(var(--right, 16px)) 0 calc(16px + var(--left, 0px)); }
+      padding: 0 calc(var(--right, 16px)) 0 16px; }
     .band { height: ${BAND}px; overflow: hidden; padding-bottom: 4px; color: var(--text); }
     .scene { position: absolute; inset: 0; width: 100%; height: 100%; }
     .identity { position: relative; display: flex; align-items: center; gap: 12px; min-width: 0; flex: 0 1 auto; }
     .badge { width: 40px; height: 40px; border-radius: 50%; flex: none; display: inline-flex; align-items: center; justify-content: center;
       background: var(--glass); }
     .is-compact .badge { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+    .menu { position: relative; flex: none; width: 44px; height: 44px; margin-inline-start: -6px; margin-inline-end: -4px; border-radius: 50%;
+      border: none; padding: 0; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text);
+      background: transparent; }
+    .is-compact .menu { color: var(--primary-text-color); }
+    .menu:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .menu-dot { position: absolute; top: 8px; right: 8px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent-color, #ff9800);
+      border: 2px solid var(--card-background-color, #fff); box-sizing: border-box; }
     .names { display: flex; flex-direction: column; min-width: 0; }
     .title { font-size: 20px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sub { font-size: 13px; line-height: 1.3; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

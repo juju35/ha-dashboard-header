@@ -115,7 +115,14 @@ customElements.define("hui-root", class extends HTMLElement {
     </div></slot></div>
     <div id="view"><div class="cards"><div class="card"></div><div class="card"></div><div class="card"></div><div class="card"></div><div class="card"></div><div class="card"></div></div></div></div>\`;
   }
-  set narrow(v) { this._narrow = v; this.shadowRoot.querySelector(".wrap").classList.toggle("narrow", v); }
+  // Like Home Assistant's, the sidebar button only shows on phones (its _show), the notification dot with it.
+  set narrow(v) {
+    this._narrow = v;
+    this.shadowRoot.querySelector(".wrap").classList.toggle("narrow", v);
+    const menu = this.shadowRoot.querySelector("ha-menu-button");
+    menu._show = v;
+    menu._hasNotifications = v;
+  }
   get narrow() { return this._narrow; }
   _navigateToView(path) { this._curView = this.lovelace.config.views.findIndex((v) => v.path === path); }
 });`;
