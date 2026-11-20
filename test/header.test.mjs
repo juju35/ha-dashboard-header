@@ -169,3 +169,29 @@ test("states: only the entities the banner reads are subscribed, again when they
   dh.watchStates(banner);
   assert.equal(sent.length, 1);
 });
+
+test("states: the first message (the current states) does not redraw the banner, the next ones do", () => {
+  let cb;
+  const conn = { subscribeMessage: (f) => ((cb = f), Promise.resolve(() => {})) };
+  let renders = 0;
+  const banner = { hass: { connection: conn }, entities: () => ["sensor.first_message"], isConnected: true, render: () => renders++ };
+  dh.state.banner = banner;
+  dh.watchStates(banner);
+  cb({ a: {} });
+  assert.equal(renders, 0);
+  cb({ c: {} });
+  assert.equal(renders, 1);
+});
+
+test("relayout: the root's style sheet put back and a resize sent, only for the current root", () => {
+  const appended = [];
+  const style = { id: "x" };
+  const root = { isConnected: true, offsetWidth: 0, shadowRoot: { getElementById: () => style, appendChild: (e) => appended.push(e) } };
+  const prev = dh.state.root;
+  dh.state.root = root;
+  dh.relayout(root);
+  dh.relayout({ ...root });
+  dh.state.root = prev;
+  assert.deepEqual(appended, [style]);
+  assert.deepEqual([...dh.dispatched], ["resize"]);
+});

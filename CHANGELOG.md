@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.2 - 2026-11-20
+
+### Fixes
+- Safari: the dashboard no longer stays laid out a sidebar's width wider than the window now and then after loading (the right column and the toolbar's buttons, the edit pencil among them, out of sight until a trip through the edit mode). The banner is no longer redrawn by the first message of its states subscription, which only repeats what it has just drawn, and a little after it comes in the page is laid out again with the sidebar in place.
+
 ## 1.3.1 - 2026-11-20
 
 ### Fixes

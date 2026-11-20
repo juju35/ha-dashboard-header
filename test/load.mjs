@@ -16,6 +16,15 @@ export const load = () => {
   const sandbox = {
     HTMLElement,
     CustomEvent: class {},
+    Event: class {
+      constructor(type) {
+        this.type = type;
+      }
+    },
+    dispatched: [],
+    dispatchEvent(ev) {
+      sandbox.dispatched.push(ev.type);
+    },
     MutationObserver: class {
       observe() {}
       disconnect() {}
@@ -33,5 +42,5 @@ export const load = () => {
   sandbox.window = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(source, sandbox);
-  return { ...sandbox.dashboardHeader, Banner: registry.get("dashboard-header-banner") };
+  return { ...sandbox.dashboardHeader, dispatched: sandbox.dispatched, Banner: registry.get("dashboard-header-banner") };
 };
