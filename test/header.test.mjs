@@ -145,3 +145,12 @@ function sky(mode) {
   c.stars = mode === "dark" ? 1 : 0;
   return c;
 }
+
+test("a CSS color stays one value: no other declaration can ride along", () => {
+  assert.equal(dh.colorOf("rgb(10, 20, 30)", "light", "x"), "rgb(10, 20, 30)");
+  assert.equal(dh.colorOf("var(--state-icon-color)", "light", "x"), "var(--state-icon-color)");
+  assert.equal(dh.colorOf("color-mix(in srgb, red 40%, blue)", "light", "x"), "color-mix(in srgb, red 40%, blue)");
+  assert.equal(dh.colorOf("red;background:url(//example.com/x.png)", "light", "x"), "x");
+  assert.equal(dh.colorOf("url(//example.com/x.png)", "light", "x"), "x");
+  assert.equal(dh.binColor('red" onload="x'), dh.binColor("gris"));
+});

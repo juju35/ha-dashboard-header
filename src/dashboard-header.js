@@ -91,11 +91,14 @@
   };
 
   // A palette name (green, amber, blue, cyan, violet, red, gray and their aliases) or any CSS color.
+  // A CSS color as written goes into style attributes: one value only (no ";", braces, url() or quotes), so that a
+  // template or a sensor's state cannot add other declarations (a background image fetched from elsewhere…).
+  const cssColor = (s) => (/^[#\w\s(),.%+-]+$/.test(s) && !/url\s*\(|expression/i.test(s) ? s : null);
   const colorOf = (v, mode, fallback) => {
     if (v == null || v === "") return fallback;
     const s = String(v).trim();
     const key = COLOR_ALIASES[s.toLowerCase()] || s.toLowerCase();
-    return PALETTE[mode][key] || s;
+    return PALETTE[mode][key] || cssColor(s) || fallback;
   };
 
   // Tempo day color, in French or English (state of the RTE Tempo / Linky sensors).
@@ -115,7 +118,7 @@
     if (!s || s === "off" || s === "false" || s === "none" || s === "unknown" || s === "unavailable") return null;
     if (s === "on" || s === "true") return BIN_COLORS.jaune;
     for (const [name, c] of Object.entries(BIN_COLORS)) if (s.includes(name)) return c;
-    return String(v).trim();
+    return cssColor(String(v).trim()) || BIN_COLORS.gris;
   };
 
   // ---- Scenes ----
