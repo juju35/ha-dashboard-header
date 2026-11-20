@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.0 - 2026-11-19
+## 1.3.0 - 2026-11-20
 
 ### Features
 - Cars scene layouts: `driveway` (the cars in front of the house and its garage, a car away leaves a dashed spot) and `station` (price totem, canopy, the car with a low tank at the pump); vehicles accept `{ picture, home, low }`, prices `{ label: entity / template / value }`.
