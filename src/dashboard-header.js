@@ -91,11 +91,14 @@
   };
 
   // A palette name (green, amber, blue, cyan, violet, red, gray and their aliases) or any CSS color.
+  // A CSS color as written goes into style attributes: one value only (no ";", braces, url() or quotes), so that a
+  // template or a sensor's state cannot add other declarations (a background image fetched from elsewhere…).
+  const cssColor = (s) => (/^[#\w\s(),.%+-]+$/.test(s) && !/url\s*\(|expression/i.test(s) ? s : null);
   const colorOf = (v, mode, fallback) => {
     if (v == null || v === "") return fallback;
     const s = String(v).trim();
     const key = COLOR_ALIASES[s.toLowerCase()] || s.toLowerCase();
-    return PALETTE[mode][key] || s;
+    return PALETTE[mode][key] || cssColor(s) || fallback;
   };
 
   // Tempo day color, in French or English (state of the RTE Tempo / Linky sensors).
@@ -115,7 +118,7 @@
     if (!s || s === "off" || s === "false" || s === "none" || s === "unknown" || s === "unavailable") return null;
     if (s === "on" || s === "true") return BIN_COLORS.jaune;
     for (const [name, c] of Object.entries(BIN_COLORS)) if (s.includes(name)) return c;
-    return String(v).trim();
+    return cssColor(String(v).trim()) || BIN_COLORS.gris;
   };
 
   // ---- Scenes ----
@@ -838,7 +841,7 @@
   if (!customElements.get(TAG)) customElements.define(TAG, DashboardHeaderBanner);
 
   // ---- Wiring: follow the current dashboard, its view, edit mode and scrolling ----
-  const state = { root: null, banner: null, observer: null, unsubEvents: null, conn: null, queued: false };
+  const state = { root: null, banner: null, observer: null, unsubEvents: null, conn: null, watchKey: null, queued: false };
 
   const deactivate = (root) => {
     if (!root) return;
@@ -847,16 +850,27 @@
     for (const v of ["--header-height", "--dh-bar-h", "--dh-text", "--dh-btn-bg", "--dh-btn-border", "--dh-top-bg"]) root.style.removeProperty(v);
   };
 
+  // Only the entities the banner reads (subscribe_entities with their ids): a state_changed subscription would bring
+  // every state change of the whole home to the browser a second time. Subscribed again when the list changes (another
+  // view, a dashboard edit); none without entities.
   const watchStates = (banner) => {
     const conn = banner.hass?.connection;
-    if (!conn?.subscribeEvents || conn === state.conn) return;
+    const ids = [...new Set(banner.entities())].sort();
+    const key = ids.join(",");
+    if (conn === state.conn && key === state.watchKey) return;
     state.unsubEvents?.then?.((u) => u?.())?.catch?.(() => {});
+    state.unsubEvents = null;
     state.conn = conn;
+    state.watchKey = key;
+    if (!conn?.subscribeMessage || !ids.length) return;
     state.unsubEvents = conn
-      .subscribeEvents((ev) => {
-        const b = state.banner;
-        if (b?.isConnected && b.entities().includes(ev?.data?.entity_id)) b.render();
-      }, "state_changed")
+      .subscribeMessage(
+        () => {
+          const b = state.banner;
+          if (b?.isConnected) b.render();
+        },
+        { type: "subscribe_entities", entity_ids: ids },
+      )
       .catch(() => {});
   };
 
@@ -926,6 +940,6 @@
   }, 1500);
   queue();
 
-  window.dashboardHeader = { VERSION, SCENES, vehicleList, PALETTE, STRINGS, resolveConfig, visibleViews, truthy, colorOf, tempoColor, binColor, sceneName, isTemplate, sync };
+  window.dashboardHeader = { VERSION, SCENES, vehicleList, PALETTE, STRINGS, resolveConfig, visibleViews, truthy, colorOf, tempoColor, binColor, sceneName, isTemplate, sync, watchStates };
   console.info(`%c DASHBOARD-HEADER %c ${VERSION} `, "color:#fff;background:#2459bd;font-weight:700", "color:#2459bd;background:#fff");
 })();
