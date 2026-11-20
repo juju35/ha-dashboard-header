@@ -161,7 +161,7 @@
   const PARKING = { 1: [1150], 2: [1066, 1196], 3: [1000, 1116, 1232] };
   // The vehicles of the cars scene: a list of picture entities (image.*, or any entity with an entity_picture, e.g.
   // the device tracker), picture URLs, or { picture } objects; or a number of plain cars. At most three.
-  const vehicleList = (raw, hass) => {
+  const vehicleList = (raw, hass, val) => {
     const picture = (v) => {
       if (v && typeof v === "object") return picture(v.picture ?? v.entity ?? v.image);
       // (an entity id of a tracker or sensor without a picture gives no picture: the plain car is drawn)
@@ -173,6 +173,7 @@
     // and whether its tank is low ({ low: … }), for the driveway and station layouts.
     const flag = (v) => {
       if (v == null) return undefined;
+      if (isTemplate(v)) return val ? val(v) : undefined;
       if (typeof v === "string" && ENTITY_ID.test(v)) return hass?.states?.[v]?.state;
       return v;
     };
@@ -240,7 +241,7 @@
       draw: (c, st, p, mode, hass, val) => {
         const v = VC[mode];
         const night = mode === "dark";
-        const cars = vehicleList(st.vehicles, hass);
+        const cars = vehicleList(st.vehicles, hass, val);
         const layout = /drive|allee|allée|home|maison/.test(String(st.layout ?? "").toLowerCase())
           ? "driveway"
           : /station|fuel|pump|carbu/.test(String(st.layout ?? "").toLowerCase())
