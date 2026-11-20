@@ -863,15 +863,35 @@
     state.conn = conn;
     state.watchKey = key;
     if (!conn?.subscribeMessage || !ids.length) return;
+    // The first message only carries the current states, which the banner has just drawn: not drawn again, so the
+    // banner does not change while Home Assistant is still laying out the page (see relayout).
+    let initial = true;
     state.unsubEvents = conn
       .subscribeMessage(
         () => {
+          if (initial) {
+            initial = false;
+            return;
+          }
           const b = state.banner;
           if (b?.isConnected) b.render();
         },
         { type: "subscribe_entities", entity_ids: ids },
       )
       .catch(() => {});
+  };
+
+  // Safari sometimes keeps a dashboard laid out for the width it had before the sidebar took its place, the banner
+  // having come in while Home Assistant was still laying out the page: the view and the header then run a sidebar's
+  // width past the window (the toolbar's buttons out of sight) until the page is laid out again, as leaving the edit
+  // mode does. A little after the banner comes in, the root's style sheet is put back and a resize sent, so the page
+  // is laid out again with the sidebar in place.
+  const relayout = (root) => {
+    if (state.root !== root || !root.isConnected) return;
+    const style = root.shadowRoot?.getElementById(STYLE_ID);
+    if (style) root.shadowRoot.appendChild(style);
+    void root.offsetWidth;
+    window.dispatchEvent(new Event("resize"));
   };
 
   const sync = () => {
@@ -903,6 +923,7 @@
     if (!banner) {
       banner = document.createElement(TAG);
       header.insertBefore(banner, header.firstChild);
+      for (const ms of [400, 1500]) setTimeout(() => relayout(root), ms);
     }
     state.banner = banner;
     if (!cfg.collapse) banner.collapsed = false;
@@ -940,6 +961,6 @@
   }, 1500);
   queue();
 
-  window.dashboardHeader = { VERSION, SCENES, vehicleList, PALETTE, STRINGS, resolveConfig, visibleViews, truthy, colorOf, tempoColor, binColor, sceneName, isTemplate, sync, watchStates };
+  window.dashboardHeader = { VERSION, SCENES, vehicleList, PALETTE, STRINGS, resolveConfig, visibleViews, truthy, colorOf, tempoColor, binColor, sceneName, isTemplate, sync, watchStates, relayout, state };
   console.info(`%c DASHBOARD-HEADER %c ${VERSION} `, "color:#fff;background:#2459bd;font-weight:700", "color:#2459bd;background:#fff");
 })();
