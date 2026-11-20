@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.1 - 2026-11-20
+
+### Fixes
+- A CSS color given to `accent`, `status.color` (a template or an entity state too) or `scene_state.bin` stays a single value: one carrying `;`, braces, `url()` or quotes is ignored and the scene's color is used.
+
+### Performance
+- The banner follows only the entities its configuration reads (`subscribe_entities`), instead of every state change of the home.
+
 ## 1.3.0 - 2026-11-20
 
 ### Features
