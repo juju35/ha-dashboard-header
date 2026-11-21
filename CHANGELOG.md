@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.4 - 2026-11-21
+
+### Fixes
+- Phones: the sun of the Home, Energy and Family scenes no longer sits under the title and the icon (or half out of the band). On narrow screens it is anchored to the right, just left of the house, whatever the phone's width.
+
 ## 1.3.3 - 2026-11-21
 
 ### Fixes
