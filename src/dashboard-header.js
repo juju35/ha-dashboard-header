@@ -547,6 +547,8 @@
 
     disconnectedCallback() {
       this._unsubscribeAll();
+      this._actionsObserver?.disconnect();
+      this._watched = null;
     }
 
     get hass() {
@@ -756,7 +758,9 @@
       this._measureActions();
     }
 
-    // Room left for the native buttons (search, Assist, menu) at the right.
+    // Room left for the native buttons (search, Assist, menu) at the right. Measured again whenever that row changes
+    // width: Home Assistant adds some of its buttons after the page is drawn (a measure taken before let the status
+    // pill run under them).
     _measureActions() {
       const bar = this.shadowRoot.querySelector(".bar");
       const tb = this._root?.shadowRoot?.querySelector(".toolbar");
@@ -764,7 +768,14 @@
       const actions = tb.querySelector(".action-items");
       const right = actions ? actions.getBoundingClientRect().width : 0;
       bar.style.setProperty("--right", `${Math.ceil(right) + 16}px`);
+      if (actions !== this._watched && typeof ResizeObserver === "function") {
+        this._actionsObserver ??= new ResizeObserver(() => this._measureActions());
+        this._actionsObserver.disconnect();
+        if (actions) this._actionsObserver.observe(actions);
+        this._watched = actions;
+      }
     }
+
   }
 
   const BANNER_CSS = `

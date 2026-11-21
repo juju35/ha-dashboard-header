@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.3 - 2026-11-21
+
+### Fixes
+- The room kept for Home Assistant's buttons at the right of the band is measured again whenever their row changes width: some of them come after the page is drawn, and the status pill could run under them (the + and search buttons).
+
 ## 1.3.2 - 2026-11-20
 
 ### Fixes
