@@ -135,6 +135,10 @@
     `<rect x="${x + 74}" y="58" width="18" height="14" rx="2" fill="${lit2 ? c.winOn : c.winOff}"/>` +
     `<rect x="${x + 42}" y="62" width="20" height="24" rx="2" fill="${door}"/>` +
     (led ? `<circle class="${led.blink ? "blink" : ""}" cx="${x + 57}" cy="75" r="2.2" fill="${led.color}"/>` : "");
+  // The sun (or moon). On phones the band shows only the right end of the 1250-wide viewBox, as wide as the screen,
+  // so a sun at a fixed x of the wide layout lands under the title and the icon: it is anchored to the right instead,
+  // just left of the house, above the subtitle and clear of Home Assistant's buttons, whatever the phone's width.
+  const sun = (c, narrow, x, y, r) => `<circle cx="${narrow ? 1046 : x}" cy="${narrow ? 18 : y}" r="${narrow ? 11 : r}" fill="${c.sun}"/>`;
   const tree = (c, x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c.tree}"/><rect x="${x - 2}" y="${y + 4}" width="4" height="${86 - y - 4}" fill="${c.tree}"/>`;
   const pylon = (c, x) => `<path d="M${x - 10} 86 L${x} 24 L${x + 10} 86 M${x - 6} 60 H${x + 6} M${x - 4} 44 H${x + 4} M${x - 14} 30 H${x + 14}" fill="none" stroke="${c.line}" stroke-width="2"/>`;
   // The roadside of ha-vehicle-card (rnSceneSvg / RN_SCENE_STYLE), at its own scale: its sky gradient, sun or moon,
@@ -196,9 +200,9 @@
       accent: "blue",
       bg: "sky",
       keys: ["lights"],
-      draw: (c, st) =>
+      draw: (c, st, _p, _mode, _hass, _val, narrow) =>
         stars(c, [[620, 18, 1.2], [760, 36, 1], [900, 14, 1.4], [1310, 22, 1.2]]) +
-        `<circle cx="860" cy="30" r="13" fill="${c.sun}"/>` +
+        sun(c, narrow, 860, 30, 13) +
         `<g fill="${c.cloud}"><ellipse cx="660" cy="30" rx="34" ry="9"/><ellipse cx="682" cy="24" rx="20" ry="9"/><ellipse cx="1290" cy="40" rx="28" ry="7"/></g>` +
         hills(c, "M0 72 Q175 54 350 68 T700 64 T1050 70 T1400 62 V90 H0z") +
         tree(c, 1040, 64, 11) +
@@ -334,8 +338,8 @@
       accent: "amber",
       bg: "sky",
       keys: ["tempo", "power"],
-      draw: (c, st, p, mode) =>
-        `<circle cx="880" cy="30" r="14" fill="${c.sun}"/>` +
+      draw: (c, st, p, mode, _hass, _val, narrow) =>
+        sun(c, narrow, 880, 30, 14) +
         hills(c, "M0 74 Q250 60 500 70 T1000 66 T1400 70 V90 H0z") +
         `<path d="M966 30 C1080 48 1190 48 1286 30 M994 30 C1100 52 1200 52 1314 30" fill="none" stroke="${c.line}" stroke-width="1"/>` +
         pylon(c, 980) +
@@ -400,11 +404,11 @@
       accent: "red",
       bg: "sky",
       keys: ["school", "bin"],
-      draw: (c, st, p) => {
+      draw: (c, st, p, _mode, _hass, _val, narrow) => {
         const school = st.school === undefined ? true : truthy(st.school);
         const bin = binColor(st.bin);
         return (
-          `<circle cx="920" cy="28" r="12" fill="${c.sun}"/>` +
+          sun(c, narrow, 920, 28, 12) +
           `<g fill="${c.cloud}"><ellipse cx="1000" cy="26" rx="26" ry="8"/><ellipse cx="1350" cy="36" rx="30" ry="8"/></g>` +
           hills(c, "M0 74 Q250 60 500 70 T1000 66 T1400 70 V90 H0z") +
           `<path d="M1150 34 V8" stroke="${c.line}" stroke-width="2"/>` +
@@ -718,7 +722,7 @@
           // On a phone the pills get their own scrolling row under the bar.
           (showTabs && narrow ? `<nav class="pills row" aria-label="${esc(views)}">${tabHtml}</nav>` : "")
         : `<div class="bar band" style="background:${esc(bandBg)}">` +
-          (scene ? `<svg class="scene" viewBox="0 0 ${narrow ? 1250 : 1600} 90" preserveAspectRatio="xMaxYMax slice" aria-hidden="true">${scene.draw(c, st, p, mode, hass, (x) => this.value(x))}</svg>` : "") +
+          (scene ? `<svg class="scene" viewBox="0 0 ${narrow ? 1250 : 1600} 90" preserveAspectRatio="xMaxYMax slice" aria-hidden="true">${scene.draw(c, st, p, mode, hass, (x) => this.value(x), narrow)}</svg>` : "") +
           `${identity}${pill}</div>` +
           (showTabs ? `<nav class="tabs" aria-label="${esc(views)}">${tabHtml}</nav>` : "");
 
