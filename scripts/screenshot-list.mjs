@@ -63,6 +63,13 @@ export const shots = [
       },
     },
   }),
+  // The Energy panel's layouts (scene_state.layout), one per tab.
+  ...twins("energy-overview", "energie", {
+    header: { status: { text: "All normal", color: "green" }, scene_state: { layout: "overview", electricity: "8.43", gas: "1.22", water: "214" } },
+  }),
+  ...twins("energy-electricity", "energie", {
+    header: { status: { text: "Blue day", color: "blue" }, scene_state: { layout: "electricity", tempo: "Blue", period: "HC", solar: "0.8", battery: "82" } },
+  }),
   ...twins("compact", "maison", { header: { mode: "compact" } }),
   ...twins("compact-phone", "maison", { width: 390, narrow: true, header: { mode: "compact" } }),
   ...twins("collapsed", "maison", { scroll: 200 }),
@@ -75,10 +82,12 @@ export const shots = [
 //   system-warning    — one LED of the server rack blinks
 //   energy-power      — the meter's bolt pulses on a red Tempo day
 //   rain              — rain falls from the cloud, the terrace lamp is lit
+//   energy-now        — power runs from the grid and the solar panels to the house (Energy panel, `now` layout)
 export const gifs = [
   ...twins("vacuum-cleaning", "equipements", { header: { scene_state: { vacuum: "cleaning", appliance: "on" } } }),
   ...twins("alarm-triggered", "securite", { header: { status: { text: "Alarm!", color: "red" }, scene_state: { alarm: "triggered", lock: "open" } } }),
   ...twins("system-warning", "systeme", { header: { status: { text: "2 updates", color: "amber" }, scene_state: { alert: "warning" } } }),
   ...twins("energy-power", "energie", { header: { status: { text: "Red day", color: "red" }, scene_state: { tempo: "Rouge", power: "on" } } }),
   ...twins("rain", "exterieur", { header: { scene_state: { rain: "on", lamp: "on" } } }),
+  ...twins("energy-now", "energie", { header: { status: { text: "1.24 kW", color: "amber" }, scene_state: { layout: "now", grid: "0.44", solar: "0.8" } } }),
 ];

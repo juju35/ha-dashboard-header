@@ -239,3 +239,35 @@ test("app panels: every dashboard of the sidebar is read once per connection, th
   assert.equal(dh.panelConfigs(hass).core_ssh.scene, "system");
   assert.equal(sent.length, 2);
 });
+
+test("energy panel: a block per view path laid over the panel's block, folding kept", () => {
+  const panels = { energy: { scene: "energie", title: "Energy", views: { now: { subtitle: "Live", scene_state: { layout: "now" } }, gas: { enabled: false } } } };
+  const now = dh.resolvePanelConfig(panels, "energy", "now", true);
+  assert.equal(now.title, "Energy");
+  assert.equal(now.subtitle, "Live");
+  assert.equal(now.sceneState.layout, "now");
+  assert.equal(now.collapse, true);
+  assert.equal(dh.resolvePanelConfig(panels, "energy", "overview", true).subtitle, undefined);
+  assert.equal(dh.resolvePanelConfig(panels, "energy", "gas", true), null);
+});
+
+test("energy layouts: names in English and French; values with their unit, text as is", () => {
+  for (const [given, want] of [
+    ["overview", "overview"],
+    ["Vue d'ensemble", "overview"],
+    ["electricity", "electricity"],
+    ["électricité", "electricity"],
+    ["now", "now"],
+    ["maintenant", "now"],
+    ["", null],
+    [undefined, null],
+  ])
+    assert.equal(dh.energyLayout(given), want, String(given));
+  const hass = { locale: { language: "en" } };
+  assert.equal(dh.amount("8.4321", "kWh", hass), "8.43 kWh");
+  assert.equal(dh.amount("12.345", "L", hass), "12.3 L");
+  assert.equal(dh.amount("214.6", "L", hass), "215 L");
+  assert.equal(dh.amount("1,5", "kW", { locale: { language: "fr" } }), "1,5 kW");
+  assert.equal(dh.amount("Blue day", "kW", hass), "Blue day");
+  assert.equal(dh.amount("", "kW", hass), "");
+});

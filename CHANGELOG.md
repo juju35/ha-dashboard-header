@@ -4,6 +4,8 @@
 
 ### Features
 - App panels: add-on pages opened from the sidebar (ingress, e.g. Terminal & SSH at `/core_ssh`) get a banner too, set by URL path under `dashboard_header.panels:` of any dashboard. The banner takes the place of the panel's small header, sidebar button included, and the app's frame keeps the rest of the height; kiosk mode is left untouched. Load the file with `frontend: extra_module_url` too for app pages opened first.
+- Energy panel: the built-in `/energy` panel gets the full banner (its tabs, buttons and folding), set under `panels: energy:` with a block per tab under `views:`.
+- Energy scene layouts for its tabs (`scene_state.layout`): `overview` (grid line, gas meter and water tap with today's use), `electricity` (Linky in the Tempo color, solar panels, battery) and `now` (power running from the grid and the panels to the house, back to the grid when exporting).
 - Loaded twice (dashboard resource and `extra_module_url`), only the first copy runs.
 
 ## 1.3.4 - 2026-11-21
