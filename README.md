@@ -25,6 +25,8 @@
 - **Day and night**: the scene follows the Home Assistant theme (dark theme = night), or is forced with `illustration_theme`.
 - **Nothing native is lost**: Home Assistant's own toolbar stays — sidebar button, search, Assist and the dashboard menu work as before, restyled as round buttons. Edit mode, subviews and dashboards without the option keep the native header.
 - **Per view**: a view can change the scene, the subtitle, the status… or turn the header off.
+- **App panels too**: add-on pages of the sidebar (Terminal & SSH, File editor…) can get a banner above the app.
+- **Energy panel**: a layout per tab — grid, gas and water today; the Linky in its Tempo color with solar panels and battery; live power running to the house.
 - Phones: the scene moves under the buttons, the status becomes a dot, tabs scroll.
 - Designed for the [ha-neutral](https://github.com/juju35/ha-neutral) theme, works with any theme.
 
@@ -122,8 +124,76 @@ views:
 | `scene_state` | — | What the scene shows: see below. Each value is an entity id, a template or a literal. |
 | `illustration_theme` | theme | `day` or `night` to force the scene; by default dark theme = night. |
 | `enabled` | `true` | In a view's block: `false` keeps the native header on that view. |
+| `panels` | — | Dashboard block only: header blocks of app panels and of the Energy panel by URL path, see [App panels](#app-panels-add-ons) and [Energy panel](#energy-panel). |
 
 Every option can be set again in a view's own `dashboard_header:` block; it overlays the dashboard's block (`scene_state` and `status` are merged key by key).
+
+### App panels (add-ons)
+
+App pages opened from the sidebar (add-on ingress, e.g. **Terminal & SSH** at `/core_ssh`) have no YAML of their own. List them by their URL path under `panels:` in the `dashboard_header:` block of any dashboard; each entry takes the same options as a dashboard block (no tabs, no folding):
+
+```yaml
+dashboard_header:
+  scene: maison
+  panels:
+    core_ssh:                  # the path after the address: /core_ssh
+      scene: systeme
+      mode: compact            # leaves the most room to the app
+      title: Terminal
+      subtitle: "{{ states('sensor.processor_use') }} % CPU"
+views:
+  # …
+```
+
+The banner sits above the app's frame and takes the place of the panel's small header (its sidebar button is drawn in the banner); the app keeps the rest of the height. A dashboard that only holds the list can keep its native header with `enabled: false`. In kiosk mode the app page is left untouched.
+
+A dashboard resource is only loaded once a dashboard has been opened. For the banner to show when an app page is opened first (a bookmark, a reload), load the file on every page too, in `configuration.yaml`:
+
+```yaml
+frontend:
+  extra_module_url:
+    - /local/community/ha-dashboard-header/dashboard-header.js
+```
+
+The dashboard resource can stay: the second copy does nothing. The `panels:` lists are read once per page load, from every dashboard of the sidebar, and again after a dashboard is edited.
+
+### Energy panel
+
+The built-in **Energy** panel (`/energy`) is drawn by the same dashboard root, so it gets the full banner — its own tabs (Overview, Electricity, Now…), Home Assistant's buttons, folding on scroll. Its configuration is generated, so its block goes in the `panels:` list under `energy`, with a block per tab under `views:` (keyed by the tab's path: `overview`, `electricity`, `gas`, `water`, `now`). The `energie` scene has a layout per tab:
+
+```yaml
+dashboard_header:
+  panels:
+    energy:
+      scene: energie
+      title: Energy
+      views:
+        overview:
+          subtitle: "{{ states('sensor.energy_today') }} kWh today"
+          scene_state:
+            layout: overview
+            electricity: sensor.energy_today
+            gas: sensor.gas_today
+            water: sensor.water_today
+        electricity:
+          icon: mdi:home-lightning-bolt
+          status: { entity: sensor.tempo_today, color: blue }
+          scene_state:
+            layout: electricity
+            tempo: sensor.tempo_today
+            period: sensor.tariff_period
+            solar: sensor.solar_power
+            battery: sensor.battery_level
+        now:
+          icon: mdi:flash
+          status: { entity: sensor.house_power, color: amber }
+          scene_state:
+            layout: now
+            grid: sensor.grid_power
+            solar: sensor.solar_power
+```
+
+The `panels:` lists are read when the panel opens (see [App panels](#app-panels-add-ons)); no `extra_module_url` is needed for the Energy panel when the resource is loaded, but it helps when `/energy` is the first page opened.
 
 ### Scene states
 
@@ -138,6 +208,14 @@ Every option can be set again in a view's own `dashboard_header:` block; it over
 | | `prices` | Station layout: up to two prices for the totem, `{ label: entity / template / value }`, e.g. `{ Diesel: sensor.cheapest_diesel }`. |
 | `energie` | `tempo` | The meter's screen in today's Tempo color (`bleu`/`blue`, `blanc`/`white`, `rouge`/`red`). |
 | | `power` | The meter's bolt pulses when on. |
+| | `layout` | `overview`, `electricity` or `now`: the layouts made for the Energy panel's tabs (below); the meter between two pylons otherwise. |
+| | `electricity`, `gas`, `water` | Overview: today's use, shown with its unit over the grid line, the gas meter and the water tap. The gas meter and the tap only show when given. |
+| | `tempo`, `period` | Electricity: the Linky on the wall in today's Tempo color; both shown as text over the pylon (e.g. `Blue · HC`). |
+| | `solar` | Electricity: panels on the roof (a power above 0 or "on"). Now: the panels' output, running to the house. |
+| | `battery` | Electricity: a home battery filled to its charge (%), red under 20 %, amber under 50 %. |
+| | `grid` | Now: power drawn from the grid, running from the pylon to the house; a negative value (export) runs back, in green. |
+| | `total` | Now: the house's power on its roof; by default `grid` + `solar`. |
+| | `lights` | Overview and electricity: lit windows (lit by default). |
 | `systeme` | `alert` | One rack LED blinks amber (`warning`, or any "on" state) or red (`error`, `critical`). |
 | `securite` | `alarm` | The shield: green when armed, amber pending, red flashing when triggered, gray disarmed. |
 | | `lock` | The door LED: green locked, amber unlocked, red open or jammed. |
@@ -172,6 +250,15 @@ Every option can be set again in a view's own `dashboard_header:` block; it over
 | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/cars-driveway.png" alt="Cars on the driveway" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/cars-driveway-dark.png" alt="Cars on the driveway, dark" width="420"> |
 | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/cars-station.png" alt="Cars at the station" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/cars-station-dark.png" alt="Cars at the station, dark" width="420"> |
 
+### Energy panel layouts
+
+`layout: overview` and `layout: electricity` (the `now` layout is in the animations):
+
+| Light | Dark |
+|---|---|
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/energy-overview.png" alt="Energy overview layout" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/energy-overview-dark.png" alt="Energy overview layout, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/energy-electricity.png" alt="Energy electricity layout" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/energy-electricity-dark.png" alt="Energy electricity layout, dark" width="420"> |
+
 ### Compact mode and folded header
 
 `mode: compact`, and an illustrated header folded after scrolling:
@@ -198,11 +285,12 @@ Each animated state of the scenes (still when the system asks for reduced motion
 | Alarm triggered, door open | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/alarm-triggered.gif" alt="Alarm triggered" width="380"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/alarm-triggered-dark.gif" alt="Alarm triggered, dark" width="380"> |
 | System warning | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/system-warning.gif" alt="System warning" width="380"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/system-warning-dark.gif" alt="System warning, dark" width="380"> |
 | Power draw on a red Tempo day | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/energy-power.gif" alt="Energy power" width="380"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/energy-power-dark.gif" alt="Energy power, dark" width="380"> |
+| Live power: grid and solar to the house | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/energy-now.gif" alt="Energy now" width="380"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/energy-now-dark.gif" alt="Energy now, dark" width="380"> |
 | Rain, terrace lamp on | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/rain.gif" alt="Rain" width="380"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/rain-dark.gif" alt="Rain, dark" width="380"> |
 
 ## How it works
 
-The resource runs on every dashboard. On a dashboard whose configuration has a `dashboard_header:` block, it inserts its banner into the dashboard's header (`hui-root`) and hides the native title and tabs; the native toolbar is laid over the banner, so its buttons keep their behavior. It sets `--header-height` to the banner's height so the views start below it. Templates are rendered by Home Assistant (`render_template` subscriptions), entity states are followed live. In edit mode, on subviews, on a view with `enabled: false` and on dashboards without the block, it removes itself and the native header is back.
+The resource runs on every dashboard. On a dashboard whose configuration has a `dashboard_header:` block, it inserts its banner into the dashboard's header (`hui-root`) and hides the native title and tabs; the native toolbar is laid over the banner, so its buttons keep their behavior. It sets `--header-height` to the banner's height so the views start below it. Templates are rendered by Home Assistant (`render_template` subscriptions), entity states are followed live. In edit mode, on subviews, on a view with `enabled: false` and on dashboards without the block, it removes itself and the native header is back. On an app panel listed under `panels:` (`ha-panel-app`), the banner is put before the app's frame, whose height is reduced by the banner's. The Energy panel (`ha-panel-energy`) renders a dashboard root of its own, with a generated configuration: its block is taken from `panels: energy:`.
 
 Because it builds on the inside of Home Assistant's dashboard header, a frontend release that changes that header may need an update of this resource.
 

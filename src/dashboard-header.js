@@ -4,8 +4,11 @@
 // replaces the look of the top bar (title and view tabs) with a 90 px illustrated band and a row of text tabs, or a
 // compact bar with pill tabs. Home Assistant's own toolbar stays in place, restyled: the sidebar button, search,
 // Assist and the dashboard menu keep working exactly as before. In edit mode, on subviews and on dashboards without
-// the block, the native header is left untouched.
+// the block, the native header is left untouched. App panels (add-on ingress, e.g. /core_ssh) get a banner too when a
+// dashboard lists them under `dashboard_header.panels:`.
 (() => {
+  // Loaded twice (dashboard resource and frontend extra_module_url): the first copy does the work.
+  if (window.dashboardHeader) return;
   const VERSION = "__VERSION__";
   const TAG = "dashboard-header-banner";
   const STYLE_ID = "dashboard-header-style";
@@ -194,6 +197,165 @@
     return Array.from({ length: n }, () => ({ img: null, away: false, low: false }));
   };
 
+  // The Energy scene's meter between two pylons: today's Tempo color on its screen, a flash when power is drawn.
+  const energyMeter = (c, st, p, mode, narrow) =>
+    sun(c, narrow, 880, 30, 14) +
+    hills(c, "M0 74 Q250 60 500 70 T1000 66 T1400 70 V90 H0z") +
+    `<path d="M966 30 C1080 48 1190 48 1286 30 M994 30 C1100 52 1200 52 1314 30" fill="none" stroke="${c.line}" stroke-width="1"/>` +
+    pylon(c, 980) +
+    pylon(c, 1300) +
+    `<rect x="1112" y="50" width="56" height="36" rx="5" fill="${c.appl}" stroke="${c.line}"/>` +
+    `<rect x="1119" y="56" width="42" height="12" rx="2" fill="${tempoColor(st.tempo, mode, c)}"/>` +
+    `<path class="${truthy(st.power) ? "pulse" : ""}" d="M1142 72 l-4 7h5l-3 6" fill="none" stroke="${truthy(st.power) ? p.amber : c.line}" stroke-width="1.8" stroke-linecap="round"/>` +
+    ground(c.grass);
+
+  // ---- The Energy panel's layouts (scene_state.layout: overview, electricity, now) ----
+  const energyLayout = (v) => {
+    const s = String(v ?? "").toLowerCase();
+    if (/overview|ensemble|vue/.test(s)) return "overview";
+    if (/electric|élec|elec/.test(s)) return "electricity";
+    if (/now|live|maintenant|direct|power/.test(s)) return "now";
+    return null;
+  };
+  const numOf = (v) => {
+    if (v == null || v === "" || typeof v === "boolean") return null;
+    const n = Number(String(v).replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+  };
+  // A value with its unit (the entity's own, else the given one); text (a template's result) as it is.
+  const amount = (v, unit, hass) => {
+    const n = numOf(v);
+    if (n === null) return v == null || v === "" ? "" : String(v);
+    const lang = hass?.locale?.language || hass?.language || "en";
+    const a = Math.abs(n);
+    const digits = a >= 100 ? 0 : a >= 10 ? 1 : 2;
+    let text;
+    try {
+      text = n.toLocaleString(lang, { maximumFractionDigits: digits });
+    } catch {
+      text = String(Math.round(n * 10 ** digits) / 10 ** digits);
+    }
+    return unit ? `${text} ${unit}` : text;
+  };
+  const svgText = (x, y, text, fill, size = 10.5, anchor = "middle") =>
+    text ? `<text x="${x}" y="${y}" font-size="${size}" font-weight="700" fill="${fill}" text-anchor="${anchor}" font-family="inherit">${esc(text)}</text>` : "";
+  const housePlain = (c, x, lit) =>
+    `<rect x="${x}" y="50" width="104" height="36" fill="${c.house}"/>` +
+    `<polygon points="${x - 10},52 ${x + 52},18 ${x + 114},52" fill="${c.roof}"/>` +
+    `<rect x="${x + 12}" y="58" width="18" height="14" rx="2" fill="${lit ? c.winOn : c.winOff}"/>` +
+    `<rect x="${x + 74}" y="58" width="18" height="14" rx="2" fill="${lit ? c.winOn : c.winOff}"/>` +
+    `<rect x="${x + 42}" y="62" width="20" height="24" rx="2" fill="${c.door}"/>`;
+  // Solar panels: along a roof slope, or on ground racks.
+  const solarPanels = (x, y, n, dark, roof) => {
+    const fill = dark ? "#2a3a5c" : "#34507e";
+    const edge = dark ? "#4d6694" : "#9db4da";
+    let out = "";
+    for (let i = 0; i < n; i++) {
+      if (roof) {
+        const px = x + i * 13;
+        const py = y - i * 7;
+        out += `<polygon points="${px},${py} ${px + 12},${py - 6.5} ${px + 16},${py - 3} ${px + 4},${py + 3.5}" fill="${fill}" stroke="${edge}" stroke-width="0.8"/>`;
+      } else {
+        const px = x + i * 22;
+        out += `<path d="M${px + 9} ${y} V${y - 8}" stroke="${edge}" stroke-width="1.5"/><polygon points="${px},${y - 8} ${px + 18},${y - 8} ${px + 14},${y - 18} ${px + 4},${y - 18}" fill="${fill}" stroke="${edge}" stroke-width="0.8"/>`;
+      }
+    }
+    return out;
+  };
+  // Dots running along a wire (an animated dash pattern): reversed when the power goes the other way.
+  const flowLine = (d, color, reverse) =>
+    `<path d="${d}" fill="none" stroke="${color}" stroke-width="1.6" opacity="0.35"/>` +
+    `<path class="flow${reverse ? " rev" : ""}" d="${d}" fill="none" stroke="${color}" stroke-width="5"/>`;
+  // On phones only the right end of the band shows, under the title and the buttons: the layouts keep the house
+  // where the other scenes have it (as on the Home scene) and leave out the wires and the values (the subtitle and
+  // the status pill carry them).
+  const has = (v) => v != null && v !== "";
+  // A home battery filled to its charge, red under 20 %, amber under 50 %.
+  const batteryBox = (c, p, x, pct) => {
+    const h = Math.round((Math.max(0, Math.min(100, pct)) / 100) * 21);
+    return (
+      `<rect x="${x}" y="60" width="18" height="26" rx="3" fill="${c.appl}" stroke="${c.line}"/><rect x="${x + 5}" y="57" width="8" height="3" fill="${c.line}"/>` +
+      `<rect x="${x + 4}" y="${83 - h}" width="10" height="${h}" rx="1" fill="${pct < 20 ? p.red : pct < 50 ? p.amber : p.green}"/>`
+    );
+  };
+
+  const ENERGY_LAYOUTS = {
+    // Overview: the grid line to the house, the gas meter and the water tap, each with today's use.
+    overview: (c, st, p, _mode, hass, narrow) =>
+      sun(c, narrow, 860, 28, 13) +
+      hills(c, "M0 74 Q250 60 500 70 T1000 66 T1400 70 V90 H0z") +
+      (narrow
+        ? housePlain(c, 1094, st.lights === undefined || truthy(st.lights)) +
+          (has(st.gas)
+            ? `<path d="M1204 86 V74 H1214" fill="none" stroke="${p.amber}" stroke-width="3"/><rect x="1212" y="64" width="16" height="14" rx="2" fill="${c.appl}" stroke="${c.line}"/><circle cx="1220" cy="71" r="3.5" fill="none" stroke="${p.amber}" stroke-width="1.5"/>`
+            : "") +
+          (has(st.water) ? `<path d="M1236 86 V64 H1246" fill="none" stroke="${p.cyan}" stroke-width="3"/><path d="M1246 70 q-4 6 0 8 q4 -2 0 -8z" fill="${p.cyan}"/>` : "")
+        : pylon(c, 960) +
+          `<path d="M960 30 C1010 40 1050 44 1092 56" fill="none" stroke="${c.line}" stroke-width="1"/>` +
+          housePlain(c, 1100, st.lights === undefined || truthy(st.lights)) +
+          svgText(1018, 22, amount(st.electricity, st.units?.electricity ?? "kWh", hass), c.text) +
+          (has(st.gas)
+            ? `<path d="M1216 86 V70 H1240" fill="none" stroke="${p.amber}" stroke-width="3"/><rect x="1238" y="60" width="18" height="16" rx="2" fill="${c.appl}" stroke="${c.line}"/><circle cx="1247" cy="68" r="4" fill="none" stroke="${p.amber}" stroke-width="1.6"/>` +
+              svgText(1247, 52, amount(st.gas, st.units?.gas ?? "m³", hass), c.text)
+            : "") +
+          (has(st.water)
+            ? `<path d="M1280 86 V62 H1296 V66" fill="none" stroke="${p.cyan}" stroke-width="3"/><path d="M1296 70 q-4 6 0 8 q4 -2 0 -8z" fill="${p.cyan}"/>` +
+              svgText(1300, 54, amount(st.water, st.units?.water ?? "L", hass), c.text)
+            : "")) +
+      ground(c.grass),
+    // Electricity: the grid to the house, the Linky on its wall in today's Tempo color, solar panels and battery.
+    electricity: (c, st, p, mode, hass, narrow) => {
+      const tempo = tempoColor(st.tempo, mode, c);
+      const label = [st.tempo, st.period].filter(has).join(" · ");
+      const solar = has(st.solar) && (numOf(st.solar) === null ? truthy(st.solar) : true);
+      const battery = numOf(st.battery);
+      return (
+        sun(c, narrow, 900, 26, 13) +
+        hills(c, "M0 74 Q250 60 500 70 T1000 66 T1400 70 V90 H0z") +
+        (narrow
+          ? housePlain(c, 1094, st.lights === undefined || truthy(st.lights)) +
+            (solar ? solarPanels(1108, 46, 3, mode === "dark", true) : "") +
+            `<rect x="1072" y="62" width="14" height="20" rx="2" fill="#7fbf6a"/><rect x="1074" y="65" width="10" height="5" fill="${tempo}"/>` +
+            (battery !== null ? batteryBox(c, p, 1214, battery) : "")
+          : pylon(c, 980) +
+            `<path d="M980 30 C1030 40 1060 46 1100 60" fill="none" stroke="${c.line}" stroke-width="1"/>` +
+            housePlain(c, 1110, st.lights === undefined || truthy(st.lights)) +
+            (solar ? solarPanels(1124, 46, 3, mode === "dark", true) : "") +
+            `<rect x="1088" y="62" width="14" height="20" rx="2" fill="#7fbf6a"/><rect x="1090" y="65" width="10" height="5" fill="${tempo}"/>` +
+            svgText(1014, 20, label, has(st.tempo) ? tempo : c.text) +
+            (battery !== null ? batteryBox(c, p, 1232, battery) + svgText(1241, 52, amount(battery, st.units?.battery ?? "%", hass), c.text, 10) : "")) +
+        ground(c.grass)
+      );
+    },
+    // Now: power running from the grid and the panels to the house (back to the grid when exporting), the total on the roof.
+    now: (c, st, p, mode, hass, narrow) => {
+      const grid = numOf(st.grid);
+      const solar = numOf(st.solar);
+      const unit = st.units?.grid || st.units?.solar || st.units?.total || "kW";
+      const total = has(st.total) ? st.total : grid !== null && solar !== null ? grid + solar : grid ?? solar;
+      const gridOn = grid === null ? truthy(st.grid) : Math.abs(grid) > 0;
+      const solarOn = solar === null ? truthy(st.solar) : solar > 0;
+      const showSolar = has(st.solar);
+      return (
+        sun(c, narrow, 870, 24, 12) +
+        hills(c, "M0 74 Q250 60 500 70 T1000 66 T1400 70 V90 H0z") +
+        (narrow
+          ? housePlain(c, 1094, true) +
+            (showSolar ? solarPanels(1206, 86, 2, mode === "dark") : "") +
+            (showSolar && solarOn ? flowLine("M1206 74 C1200 74 1196 72 1192 72", p.green) : "")
+          : pylon(c, 940) +
+            (showSolar ? solarPanels(1010, 86, 3, mode === "dark") : "") +
+            housePlain(c, 1150, true) +
+            (gridOn ? flowLine("M940 30 C1000 40 1080 50 1146 62", grid !== null && grid < 0 ? p.green : p.amber, grid !== null && grid < 0) : `<path d="M940 30 C1000 40 1080 50 1146 62" fill="none" stroke="${c.line}" stroke-width="1"/>`) +
+            (showSolar && solarOn ? flowLine("M1060 66 C1095 66 1120 66 1146 70", p.green) : "") +
+            svgText(1030, 22, amount(grid ?? st.grid, st.units?.grid ?? unit, hass), grid !== null && grid < 0 ? p.green : p.amber) +
+            (showSolar ? svgText(1032, 64, amount(st.solar, st.units?.solar ?? unit, hass), p.green) : "") +
+            (has(total) ? `<rect x="1168" y="24" width="68" height="20" rx="10" fill="${c.glass}"/>${svgText(1202, 38, amount(total, st.units?.total ?? unit, hass), c.text, 11)}` : "")) +
+        ground(c.grass)
+      );
+    },
+  };
+
   const SCENES = {
     maison: {
       icon: "mdi:home-assistant",
@@ -337,17 +499,13 @@
       icon: "mdi:lightning-bolt",
       accent: "amber",
       bg: "sky",
-      keys: ["tempo", "power"],
-      draw: (c, st, p, mode, _hass, _val, narrow) =>
-        sun(c, narrow, 880, 30, 14) +
-        hills(c, "M0 74 Q250 60 500 70 T1000 66 T1400 70 V90 H0z") +
-        `<path d="M966 30 C1080 48 1190 48 1286 30 M994 30 C1100 52 1200 52 1314 30" fill="none" stroke="${c.line}" stroke-width="1"/>` +
-        pylon(c, 980) +
-        pylon(c, 1300) +
-        `<rect x="1112" y="50" width="56" height="36" rx="5" fill="${c.appl}" stroke="${c.line}"/>` +
-        `<rect x="1119" y="56" width="42" height="12" rx="2" fill="${tempoColor(st.tempo, mode, c)}"/>` +
-        `<path class="${truthy(st.power) ? "pulse" : ""}" d="M1142 72 l-4 7h5l-3 6" fill="none" stroke="${truthy(st.power) ? p.amber : c.line}" stroke-width="1.8" stroke-linecap="round"/>` +
-        ground(c.grass),
+      keys: ["tempo", "power", "layout", "electricity", "gas", "water", "lights", "period", "solar", "battery", "grid", "total"],
+      // The meter between two pylons, or one of the three layouts made for the Energy panel's tabs.
+      draw: (c, st, p, mode, hass, _val, narrow) => {
+        const layout = energyLayout(st.layout);
+        if (layout) return ENERGY_LAYOUTS[layout](c, st, p, mode, hass, narrow);
+        return energyMeter(c, st, p, mode, narrow);
+      },
     },
     systeme: {
       icon: "mdi:server",
@@ -488,6 +646,28 @@
     };
   };
 
+  // App panels (add-on ingress pages such as /core_ssh) have no YAML of their own: their blocks are listed by URL path
+  // under `dashboard_header.panels:` of any dashboard. The first dashboard listing a panel wins.
+  const collectPanels = (configs) => {
+    const map = {};
+    for (const config of configs || []) {
+      const panels = config?.dashboard_header?.panels;
+      if (!panels || typeof panels !== "object") continue;
+      for (const [key, block] of Object.entries(panels)) if (block && typeof block === "object" && !(key in map)) map[key] = block;
+    }
+    return map;
+  };
+  // A panel's block, read like a dashboard's; `views:` holds a block per view path (the Energy panel's tabs), laid
+  // over it like a view's own block. App panels have no views and nothing to fold (the app scrolls inside its frame).
+  const resolvePanelConfig = (panels, key, viewPath, fold = false) => {
+    const block = key ? panels?.[key] : null;
+    if (!block || typeof block !== "object") return null;
+    const { views, ...base } = block;
+    const view = viewPath != null && views && typeof views === "object" ? views[viewPath] : null;
+    const cfg = resolveConfig({ dashboard_header: base }, { dashboard_header: view });
+    return cfg && (fold ? cfg : { ...cfg, collapse: false });
+  };
+
   // Views as Home Assistant shows them as tabs: no subviews, none hidden from the current user.
   const visibleViews = (views, hass) =>
     (views || [])
@@ -500,11 +680,17 @@
       });
 
   // ---- Locating Home Assistant's dashboard root ----
+  const findMain = () => document.querySelector("home-assistant")?.shadowRoot?.querySelector("home-assistant-main");
+  // A dashboard's root, or the Energy panel's (ha-panel-energy renders the same hui-root): the one of the current page.
   const findRoot = () => {
-    const main = document.querySelector("home-assistant")?.shadowRoot?.querySelector("home-assistant-main");
-    const panel = main?.shadowRoot?.querySelector("ha-panel-lovelace");
-    return panel?.shadowRoot?.querySelector("hui-root") || document.querySelector("hui-root");
+    const panels = findMain()?.shadowRoot?.querySelectorAll("ha-panel-lovelace, ha-panel-energy") || [];
+    const roots = [...panels].map((panel) => panel.shadowRoot?.querySelector("hui-root")).filter(Boolean);
+    const prefix = `/${location.pathname.split("/")[1] || ""}`;
+    return roots.find((r) => r.route?.prefix === prefix) || roots[0] || document.querySelector("hui-root");
   };
+  // The app panel (src/panels/app/ha-panel-app.ts): its own small header (phones, sidebar always hidden) and the iframe.
+  const findApp = () => findMain()?.shadowRoot?.querySelector("ha-panel-app") || document.querySelector("ha-panel-app");
+  const panelKey = (app) => app?.panel?.url_path || decodeURIComponent(location.pathname.split("/")[1] || "");
   const currentViewIndex = (root, views) => {
     if (typeof root._curView === "number") return root._curView;
     const seg = decodeURIComponent(location.pathname.split("/")[2] || "");
@@ -676,7 +862,7 @@
       const c = SKY[mode];
       const scene = SCENES[cfg.scene];
       const accent = colorOf(cfg.accent, mode, p.blue);
-      const title = this.value(cfg.title) || root.lovelace?.config?.title || hass?.panels?.[root.route?.prefix?.slice(1)]?.title || "Home Assistant";
+      const title = this.value(cfg.title) || root.lovelace?.config?.title || hass?.panels?.[root.route?.prefix?.slice(1)]?.title || root.panel?.title || root._addon?.name || "Home Assistant";
       const subtitle = this.value(cfg.subtitle);
       const status = cfg.status;
       const statusText = status ? (status.text != null ? this.value(status.text) : this.value(status.entity)) : "";
@@ -687,6 +873,13 @@
       const narrow = Boolean(root.narrow);
       const st = {};
       for (const k of scene ? scene.keys : []) st[k] = this.value(cfg.sceneState?.[k]);
+      // Units of the entities given (the Energy layouts show values with them).
+      st.units = {};
+      for (const [k, v] of Object.entries(cfg.sceneState || {}))
+        if (typeof v === "string" && ENTITY_ID.test(v)) {
+          const u = hass?.states?.[v]?.attributes?.unit_of_measurement;
+          if (u) st.units[k] = u;
+        }
       const bandBg = scene ? (scene.band ? scene.band(mode) : c[scene.bg]) : c.sky;
       const views = t(hass, "views");
 
@@ -706,9 +899,17 @@
 
       // Home Assistant's sidebar button decides when it shows (phones, sidebar always hidden, not with the companion
       // app's own sidebar…); the banner mirrors it, notification dot included.
-      const native = root.shadowRoot?.querySelector(".toolbar ha-menu-button");
-      const showMenu = native ? (typeof native._show === "boolean" ? native._show : Boolean(native.shadowRoot?.querySelector("ha-icon-button"))) : false;
-      const menuDot = showMenu && Boolean(native._hasNotifications);
+      // An app panel draws its sidebar button in its own small header, shown under the same conditions.
+      const app = root.localName === "ha-panel-app";
+      const native = app ? null : root.shadowRoot?.querySelector(".toolbar ha-menu-button");
+      const showMenu = app
+        ? Boolean(root.shadowRoot?.querySelector(".header"))
+        : native
+          ? typeof native._show === "boolean"
+            ? native._show
+            : Boolean(native.shadowRoot?.querySelector("ha-icon-button"))
+          : false;
+      const menuDot = showMenu && Boolean(native?._hasNotifications);
       const menuLabel = hass?.localize?.("ui.sidebar.sidebar_toggle") || "Menu";
       const menu = showMenu
         ? `<button class="menu" type="button" aria-label="${esc(menuLabel)}" title="${esc(menuLabel)}"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"/></svg>${menuDot ? '<span class="menu-dot"></span>' : ""}</button>`
@@ -759,6 +960,7 @@
       s.setProperty("--dh-btn-border", compact ? "1px solid var(--divider-color, rgba(0,0,0,.12))" : "none");
       s.setProperty("--dh-top-bg", compact ? "var(--card-background-color, #fff)" : bandBg);
       s.setProperty("--header-height", `${this.expandedHeight()}px`);
+      s.setProperty("--dh-h", `${this.expandedHeight()}px`);
       this._measureActions();
     }
 
@@ -843,6 +1045,9 @@
     .drift.slow { animation-duration: 8s; }
     .twinkle { animation: dh-twinkle 3.2s ease-in-out infinite alternate; }
     .progress { animation: dh-progress 3s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: left center; }
+    .flow { stroke-dasharray: 0.1 12; stroke-linecap: round; animation: dh-flow 0.9s linear infinite; }
+    .flow.rev { animation-direction: reverse; }
+    @keyframes dh-flow { 0% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -12.1; } }
     @keyframes dh-blink { 0% { opacity: 1; } 100% { opacity: 0.25; } }
     @keyframes dh-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
     @keyframes dh-rain { 0% { transform: translateY(-6px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(18px); opacity: 0; } }
@@ -850,19 +1055,27 @@
     @keyframes dh-drift { 0% { translate: 0 0; } 100% { translate: 6px 0; } }
     @keyframes dh-twinkle { 0% { opacity: 0.8; } 100% { opacity: 0.2; } }
     @keyframes dh-progress { 0% { transform: scaleX(0.3); } 100% { transform: scaleX(1); } }
-    @media (prefers-reduced-motion: reduce) { .blink, .pulse, .rain path, .robot-away, .progress, .drift, .twinkle { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { .blink, .pulse, .rain path, .robot-away, .progress, .drift, .twinkle, .flow { animation: none; } }
   `;
 
   if (!customElements.get(TAG)) customElements.define(TAG, DashboardHeaderBanner);
 
   // ---- Wiring: follow the current dashboard, its view, edit mode and scrolling ----
-  const state = { root: null, banner: null, observer: null, unsubEvents: null, conn: null, watchKey: null, queued: false };
+  const state = { root: null, banner: null, observer: null, unsubEvents: null, conn: null, watchKey: null, queued: false, lovelaceConfig: null };
+
+  // In an app panel the banner sits above the app's frame: the panel's own small header is hidden (the banner draws its
+  // sidebar button) and the frame keeps the rest of the height.
+  const APP_CSS = `
+    ${TAG} { display: block; padding-top: var(--safe-area-inset-top, 0px); background: var(--dh-top-bg, transparent); }
+    .header { display: none !important; }
+    iframe { padding-top: 0 !important; height: calc(100% - var(--dh-h, 0px) - var(--safe-area-inset-top, 0px)) !important; }
+  `;
 
   const deactivate = (root) => {
     if (!root) return;
     root.shadowRoot?.getElementById(STYLE_ID)?.remove();
     root.shadowRoot?.querySelector(TAG)?.remove();
-    for (const v of ["--header-height", "--dh-bar-h", "--dh-text", "--dh-btn-bg", "--dh-btn-border", "--dh-top-bg"]) root.style.removeProperty(v);
+    for (const v of ["--header-height", "--dh-h", "--dh-bar-h", "--dh-text", "--dh-btn-bg", "--dh-btn-border", "--dh-top-bg"]) root.style.removeProperty(v);
   };
 
   // Only the entities the banner reads (subscribe_entities with their ids): a state_changed subscription would bring
@@ -909,31 +1122,102 @@
     window.dispatchEvent(new Event("resize"));
   };
 
+  // The `panels:` blocks of every dashboard (lovelace/config of each one in the sidebar list), read once per connection
+  // when an app panel is first shown, and again after a dashboard's configuration changed.
+  const panelStore = { conn: null, map: null, loading: null };
+  const panelConfigs = (hass) => {
+    const conn = hass?.connection;
+    if (!conn?.sendMessagePromise) return null;
+    if (panelStore.conn === conn && (panelStore.map || panelStore.loading)) return panelStore.map;
+    panelStore.conn = conn;
+    panelStore.map = null;
+    const paths = Object.values(hass.panels || {})
+      .filter((p) => p?.component_name === "lovelace")
+      .map((p) => (p.url_path === "lovelace" ? null : p.url_path));
+    const loading = Promise.all(paths.map((url_path) => conn.sendMessagePromise({ type: "lovelace/config", url_path }).catch(() => null))).then(
+      (configs) => {
+        if (panelStore.loading !== loading) return;
+        panelStore.loading = null;
+        panelStore.map = collectPanels(configs);
+        queue();
+      },
+    );
+    panelStore.loading = loading;
+    return null;
+  };
+  const resetPanels = () => {
+    panelStore.map = null;
+    panelStore.loading = null;
+  };
+
+  const ensureStyle = (shadow, css, prepend) => {
+    if (shadow.getElementById(STYLE_ID)) return;
+    const style = document.createElement("style");
+    style.id = STYLE_ID;
+    style.textContent = css;
+    if (prepend) shadow.prepend(style);
+    else shadow.appendChild(style);
+  };
+
+  // Banner and style go first in the panel's shadow root, before the part Lit renders into: a re-render (the app
+  // loaded, the small header shown or hidden) never removes them.
+  const syncApp = (app) => {
+    const cfg = app._kioskMode ? null : resolvePanelConfig(panelConfigs(app.hass), panelKey(app));
+    if (!cfg || !app.shadowRoot.querySelector("iframe")) return deactivate(app);
+    ensureStyle(app.shadowRoot, APP_CSS, true);
+    let banner = app.shadowRoot.querySelector(TAG);
+    if (!banner) {
+      banner = document.createElement(TAG);
+      app.shadowRoot.prepend(banner);
+    }
+    state.banner = banner;
+    banner.collapsed = false;
+    banner.setup(app, cfg);
+    watchStates(banner);
+  };
+
   const sync = () => {
     state.queued = false;
-    const root = findRoot();
+    const lovelace = findRoot();
+    const root = lovelace || findApp();
     if (state.root && state.root !== root) deactivate(state.root);
     if (root !== state.root) {
       state.observer?.disconnect();
       state.observer = null;
       state.root = root;
     }
-    if (!root?.shadowRoot || !root.lovelace?.config) return;
+    if (!root?.shadowRoot) return;
+    if (!lovelace) {
+      if (!root.hass) return;
+      if (!state.observer) {
+        state.observer = new MutationObserver(queue);
+        state.observer.observe(root.shadowRoot, { childList: true, subtree: true });
+      }
+      return syncApp(root);
+    }
+    if (!root.lovelace?.config) return;
+    // A dashboard edited (or another one opened) may change the `panels:` lists: read again on the next panel.
+    if (root.lovelace.config !== state.lovelaceConfig) {
+      state.lovelaceConfig = root.lovelace.config;
+      if (root.lovelace.config.dashboard_header) resetPanels();
+    }
     if (!state.observer) {
       state.observer = new MutationObserver(queue);
       state.observer.observe(root.shadowRoot, { childList: true, subtree: true });
     }
     const views = root.lovelace.config.views || [];
     const viewCfg = views[currentViewIndex(root, views)];
-    const cfg = root.lovelace.editMode || viewCfg?.subview ? null : resolveConfig(root.lovelace.config, viewCfg);
+    // A generated panel (the Energy panel) has no YAML: its block comes from the `panels:` lists, by its URL path.
+    const generated = !root.lovelace.config.dashboard_header && root.lovelace.mode === "generated" && root.lovelace.urlPath;
+    const cfg =
+      root.lovelace.editMode || viewCfg?.subview
+        ? null
+        : generated
+          ? resolvePanelConfig(panelConfigs(root.hass), root.lovelace.urlPath, viewCfg?.path ?? String(views.indexOf(viewCfg)), true)
+          : resolveConfig(root.lovelace.config, viewCfg);
     const header = root.shadowRoot.querySelector(".header");
     if (!cfg || !header) return deactivate(root);
-    if (!root.shadowRoot.getElementById(STYLE_ID)) {
-      const style = document.createElement("style");
-      style.id = STYLE_ID;
-      style.textContent = ROOT_CSS;
-      root.shadowRoot.appendChild(style);
-    }
+    ensureStyle(root.shadowRoot, ROOT_CSS, false);
     let banner = header.querySelector(TAG);
     if (!banner) {
       banner = document.createElement(TAG);
@@ -976,6 +1260,6 @@
   }, 1500);
   queue();
 
-  window.dashboardHeader = { VERSION, SCENES, vehicleList, PALETTE, STRINGS, resolveConfig, visibleViews, truthy, colorOf, tempoColor, binColor, sceneName, isTemplate, sync, watchStates, relayout, state };
+  window.dashboardHeader = { VERSION, SCENES, vehicleList, PALETTE, STRINGS, resolveConfig, resolvePanelConfig, energyLayout, amount, numOf, collectPanels, panelConfigs, visibleViews, truthy, colorOf, tempoColor, binColor, sceneName, isTemplate, sync, watchStates, relayout, state };
   console.info(`%c DASHBOARD-HEADER %c ${VERSION} `, "color:#fff;background:#2459bd;font-weight:700", "color:#2459bd;background:#fff");
 })();
