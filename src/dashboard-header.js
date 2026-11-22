@@ -4,8 +4,11 @@
 // replaces the look of the top bar (title and view tabs) with a 90 px illustrated band and a row of text tabs, or a
 // compact bar with pill tabs. Home Assistant's own toolbar stays in place, restyled: the sidebar button, search,
 // Assist and the dashboard menu keep working exactly as before. In edit mode, on subviews and on dashboards without
-// the block, the native header is left untouched.
+// the block, the native header is left untouched. App panels (add-on ingress, e.g. /core_ssh) get a banner too when a
+// dashboard lists them under `dashboard_header.panels:`.
 (() => {
+  // Loaded twice (dashboard resource and frontend extra_module_url): the first copy does the work.
+  if (window.dashboardHeader) return;
   const VERSION = "__VERSION__";
   const TAG = "dashboard-header-banner";
   const STYLE_ID = "dashboard-header-style";
@@ -488,6 +491,24 @@
     };
   };
 
+  // App panels (add-on ingress pages such as /core_ssh) have no YAML of their own: their blocks are listed by URL path
+  // under `dashboard_header.panels:` of any dashboard. The first dashboard listing a panel wins.
+  const collectPanels = (configs) => {
+    const map = {};
+    for (const config of configs || []) {
+      const panels = config?.dashboard_header?.panels;
+      if (!panels || typeof panels !== "object") continue;
+      for (const [key, block] of Object.entries(panels)) if (block && typeof block === "object" && !(key in map)) map[key] = block;
+    }
+    return map;
+  };
+  // A panel's block, read like a dashboard's: no views (so no tabs) and nothing to fold, the app scrolls inside its frame.
+  const resolvePanelConfig = (panels, key) => {
+    const block = key ? panels?.[key] : null;
+    const cfg = block ? resolveConfig({ dashboard_header: block }) : null;
+    return cfg && { ...cfg, collapse: false };
+  };
+
   // Views as Home Assistant shows them as tabs: no subviews, none hidden from the current user.
   const visibleViews = (views, hass) =>
     (views || [])
@@ -500,11 +521,14 @@
       });
 
   // ---- Locating Home Assistant's dashboard root ----
+  const findMain = () => document.querySelector("home-assistant")?.shadowRoot?.querySelector("home-assistant-main");
   const findRoot = () => {
-    const main = document.querySelector("home-assistant")?.shadowRoot?.querySelector("home-assistant-main");
-    const panel = main?.shadowRoot?.querySelector("ha-panel-lovelace");
+    const panel = findMain()?.shadowRoot?.querySelector("ha-panel-lovelace");
     return panel?.shadowRoot?.querySelector("hui-root") || document.querySelector("hui-root");
   };
+  // The app panel (src/panels/app/ha-panel-app.ts): its own small header (phones, sidebar always hidden) and the iframe.
+  const findApp = () => findMain()?.shadowRoot?.querySelector("ha-panel-app") || document.querySelector("ha-panel-app");
+  const panelKey = (app) => app?.panel?.url_path || decodeURIComponent(location.pathname.split("/")[1] || "");
   const currentViewIndex = (root, views) => {
     if (typeof root._curView === "number") return root._curView;
     const seg = decodeURIComponent(location.pathname.split("/")[2] || "");
@@ -676,7 +700,7 @@
       const c = SKY[mode];
       const scene = SCENES[cfg.scene];
       const accent = colorOf(cfg.accent, mode, p.blue);
-      const title = this.value(cfg.title) || root.lovelace?.config?.title || hass?.panels?.[root.route?.prefix?.slice(1)]?.title || "Home Assistant";
+      const title = this.value(cfg.title) || root.lovelace?.config?.title || hass?.panels?.[root.route?.prefix?.slice(1)]?.title || root.panel?.title || root._addon?.name || "Home Assistant";
       const subtitle = this.value(cfg.subtitle);
       const status = cfg.status;
       const statusText = status ? (status.text != null ? this.value(status.text) : this.value(status.entity)) : "";
@@ -706,9 +730,17 @@
 
       // Home Assistant's sidebar button decides when it shows (phones, sidebar always hidden, not with the companion
       // app's own sidebar…); the banner mirrors it, notification dot included.
-      const native = root.shadowRoot?.querySelector(".toolbar ha-menu-button");
-      const showMenu = native ? (typeof native._show === "boolean" ? native._show : Boolean(native.shadowRoot?.querySelector("ha-icon-button"))) : false;
-      const menuDot = showMenu && Boolean(native._hasNotifications);
+      // An app panel draws its sidebar button in its own small header, shown under the same conditions.
+      const app = root.localName === "ha-panel-app";
+      const native = app ? null : root.shadowRoot?.querySelector(".toolbar ha-menu-button");
+      const showMenu = app
+        ? Boolean(root.shadowRoot?.querySelector(".header"))
+        : native
+          ? typeof native._show === "boolean"
+            ? native._show
+            : Boolean(native.shadowRoot?.querySelector("ha-icon-button"))
+          : false;
+      const menuDot = showMenu && Boolean(native?._hasNotifications);
       const menuLabel = hass?.localize?.("ui.sidebar.sidebar_toggle") || "Menu";
       const menu = showMenu
         ? `<button class="menu" type="button" aria-label="${esc(menuLabel)}" title="${esc(menuLabel)}"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"/></svg>${menuDot ? '<span class="menu-dot"></span>' : ""}</button>`
@@ -759,6 +791,7 @@
       s.setProperty("--dh-btn-border", compact ? "1px solid var(--divider-color, rgba(0,0,0,.12))" : "none");
       s.setProperty("--dh-top-bg", compact ? "var(--card-background-color, #fff)" : bandBg);
       s.setProperty("--header-height", `${this.expandedHeight()}px`);
+      s.setProperty("--dh-h", `${this.expandedHeight()}px`);
       this._measureActions();
     }
 
@@ -856,13 +889,21 @@
   if (!customElements.get(TAG)) customElements.define(TAG, DashboardHeaderBanner);
 
   // ---- Wiring: follow the current dashboard, its view, edit mode and scrolling ----
-  const state = { root: null, banner: null, observer: null, unsubEvents: null, conn: null, watchKey: null, queued: false };
+  const state = { root: null, banner: null, observer: null, unsubEvents: null, conn: null, watchKey: null, queued: false, lovelaceConfig: null };
+
+  // In an app panel the banner sits above the app's frame: the panel's own small header is hidden (the banner draws its
+  // sidebar button) and the frame keeps the rest of the height.
+  const APP_CSS = `
+    ${TAG} { display: block; padding-top: var(--safe-area-inset-top, 0px); background: var(--dh-top-bg, transparent); }
+    .header { display: none !important; }
+    iframe { padding-top: 0 !important; height: calc(100% - var(--dh-h, 0px) - var(--safe-area-inset-top, 0px)) !important; }
+  `;
 
   const deactivate = (root) => {
     if (!root) return;
     root.shadowRoot?.getElementById(STYLE_ID)?.remove();
     root.shadowRoot?.querySelector(TAG)?.remove();
-    for (const v of ["--header-height", "--dh-bar-h", "--dh-text", "--dh-btn-bg", "--dh-btn-border", "--dh-top-bg"]) root.style.removeProperty(v);
+    for (const v of ["--header-height", "--dh-h", "--dh-bar-h", "--dh-text", "--dh-btn-bg", "--dh-btn-border", "--dh-top-bg"]) root.style.removeProperty(v);
   };
 
   // Only the entities the banner reads (subscribe_entities with their ids): a state_changed subscription would bring
@@ -909,16 +950,85 @@
     window.dispatchEvent(new Event("resize"));
   };
 
+  // The `panels:` blocks of every dashboard (lovelace/config of each one in the sidebar list), read once per connection
+  // when an app panel is first shown, and again after a dashboard's configuration changed.
+  const panelStore = { conn: null, map: null, loading: null };
+  const panelConfigs = (hass) => {
+    const conn = hass?.connection;
+    if (!conn?.sendMessagePromise) return null;
+    if (panelStore.conn === conn && (panelStore.map || panelStore.loading)) return panelStore.map;
+    panelStore.conn = conn;
+    panelStore.map = null;
+    const paths = Object.values(hass.panels || {})
+      .filter((p) => p?.component_name === "lovelace")
+      .map((p) => (p.url_path === "lovelace" ? null : p.url_path));
+    const loading = Promise.all(paths.map((url_path) => conn.sendMessagePromise({ type: "lovelace/config", url_path }).catch(() => null))).then(
+      (configs) => {
+        if (panelStore.loading !== loading) return;
+        panelStore.loading = null;
+        panelStore.map = collectPanels(configs);
+        queue();
+      },
+    );
+    panelStore.loading = loading;
+    return null;
+  };
+  const resetPanels = () => {
+    panelStore.map = null;
+    panelStore.loading = null;
+  };
+
+  const ensureStyle = (shadow, css, prepend) => {
+    if (shadow.getElementById(STYLE_ID)) return;
+    const style = document.createElement("style");
+    style.id = STYLE_ID;
+    style.textContent = css;
+    if (prepend) shadow.prepend(style);
+    else shadow.appendChild(style);
+  };
+
+  // Banner and style go first in the panel's shadow root, before the part Lit renders into: a re-render (the app
+  // loaded, the small header shown or hidden) never removes them.
+  const syncApp = (app) => {
+    const cfg = app._kioskMode ? null : resolvePanelConfig(panelConfigs(app.hass), panelKey(app));
+    if (!cfg || !app.shadowRoot.querySelector("iframe")) return deactivate(app);
+    ensureStyle(app.shadowRoot, APP_CSS, true);
+    let banner = app.shadowRoot.querySelector(TAG);
+    if (!banner) {
+      banner = document.createElement(TAG);
+      app.shadowRoot.prepend(banner);
+    }
+    state.banner = banner;
+    banner.collapsed = false;
+    banner.setup(app, cfg);
+    watchStates(banner);
+  };
+
   const sync = () => {
     state.queued = false;
-    const root = findRoot();
+    const lovelace = findRoot();
+    const root = lovelace || findApp();
     if (state.root && state.root !== root) deactivate(state.root);
     if (root !== state.root) {
       state.observer?.disconnect();
       state.observer = null;
       state.root = root;
     }
-    if (!root?.shadowRoot || !root.lovelace?.config) return;
+    if (!root?.shadowRoot) return;
+    if (!lovelace) {
+      if (!root.hass) return;
+      if (!state.observer) {
+        state.observer = new MutationObserver(queue);
+        state.observer.observe(root.shadowRoot, { childList: true, subtree: true });
+      }
+      return syncApp(root);
+    }
+    if (!root.lovelace?.config) return;
+    // A dashboard edited (or another one opened) may change the `panels:` lists: read again on the next app panel.
+    if (root.lovelace.config !== state.lovelaceConfig) {
+      state.lovelaceConfig = root.lovelace.config;
+      resetPanels();
+    }
     if (!state.observer) {
       state.observer = new MutationObserver(queue);
       state.observer.observe(root.shadowRoot, { childList: true, subtree: true });
@@ -928,12 +1038,7 @@
     const cfg = root.lovelace.editMode || viewCfg?.subview ? null : resolveConfig(root.lovelace.config, viewCfg);
     const header = root.shadowRoot.querySelector(".header");
     if (!cfg || !header) return deactivate(root);
-    if (!root.shadowRoot.getElementById(STYLE_ID)) {
-      const style = document.createElement("style");
-      style.id = STYLE_ID;
-      style.textContent = ROOT_CSS;
-      root.shadowRoot.appendChild(style);
-    }
+    ensureStyle(root.shadowRoot, ROOT_CSS, false);
     let banner = header.querySelector(TAG);
     if (!banner) {
       banner = document.createElement(TAG);
@@ -976,6 +1081,6 @@
   }, 1500);
   queue();
 
-  window.dashboardHeader = { VERSION, SCENES, vehicleList, PALETTE, STRINGS, resolveConfig, visibleViews, truthy, colorOf, tempoColor, binColor, sceneName, isTemplate, sync, watchStates, relayout, state };
+  window.dashboardHeader = { VERSION, SCENES, vehicleList, PALETTE, STRINGS, resolveConfig, resolvePanelConfig, collectPanels, panelConfigs, visibleViews, truthy, colorOf, tempoColor, binColor, sceneName, isTemplate, sync, watchStates, relayout, state };
   console.info(`%c DASHBOARD-HEADER %c ${VERSION} `, "color:#fff;background:#2459bd;font-weight:700", "color:#2459bd;background:#fff");
 })();

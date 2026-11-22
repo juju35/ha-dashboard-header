@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0 - 2026-11-22
+
+### Features
+- App panels: add-on pages opened from the sidebar (ingress, e.g. Terminal & SSH at `/core_ssh`) get a banner too, set by URL path under `dashboard_header.panels:` of any dashboard. The banner takes the place of the panel's small header, sidebar button included, and the app's frame keeps the rest of the height; kiosk mode is left untouched. Load the file with `frontend: extra_module_url` too for app pages opened first.
+- Loaded twice (dashboard resource and `extra_module_url`), only the first copy runs.
+
 ## 1.3.4 - 2026-11-21
 
 ### Fixes

@@ -25,6 +25,7 @@
 - **Day and night**: the scene follows the Home Assistant theme (dark theme = night), or is forced with `illustration_theme`.
 - **Nothing native is lost**: Home Assistant's own toolbar stays — sidebar button, search, Assist and the dashboard menu work as before, restyled as round buttons. Edit mode, subviews and dashboards without the option keep the native header.
 - **Per view**: a view can change the scene, the subtitle, the status… or turn the header off.
+- **App panels too**: add-on pages of the sidebar (Terminal & SSH, File editor…) can get a banner above the app.
 - Phones: the scene moves under the buttons, the status becomes a dot, tabs scroll.
 - Designed for the [ha-neutral](https://github.com/juju35/ha-neutral) theme, works with any theme.
 
@@ -122,8 +123,38 @@ views:
 | `scene_state` | — | What the scene shows: see below. Each value is an entity id, a template or a literal. |
 | `illustration_theme` | theme | `day` or `night` to force the scene; by default dark theme = night. |
 | `enabled` | `true` | In a view's block: `false` keeps the native header on that view. |
+| `panels` | — | Dashboard block only: header blocks of app panels by URL path, see [App panels](#app-panels-add-ons). |
 
 Every option can be set again in a view's own `dashboard_header:` block; it overlays the dashboard's block (`scene_state` and `status` are merged key by key).
+
+### App panels (add-ons)
+
+App pages opened from the sidebar (add-on ingress, e.g. **Terminal & SSH** at `/core_ssh`) have no YAML of their own. List them by their URL path under `panels:` in the `dashboard_header:` block of any dashboard; each entry takes the same options as a dashboard block (no tabs, no folding):
+
+```yaml
+dashboard_header:
+  scene: maison
+  panels:
+    core_ssh:                  # the path after the address: /core_ssh
+      scene: systeme
+      mode: compact            # leaves the most room to the app
+      title: Terminal
+      subtitle: "{{ states('sensor.processor_use') }} % CPU"
+views:
+  # …
+```
+
+The banner sits above the app's frame and takes the place of the panel's small header (its sidebar button is drawn in the banner); the app keeps the rest of the height. A dashboard that only holds the list can keep its native header with `enabled: false`. In kiosk mode the app page is left untouched.
+
+A dashboard resource is only loaded once a dashboard has been opened. For the banner to show when an app page is opened first (a bookmark, a reload), load the file on every page too, in `configuration.yaml`:
+
+```yaml
+frontend:
+  extra_module_url:
+    - /local/community/ha-dashboard-header/dashboard-header.js
+```
+
+The dashboard resource can stay: the second copy does nothing. The `panels:` lists are read once per page load, from every dashboard of the sidebar, and again after a dashboard is edited.
 
 ### Scene states
 
@@ -202,7 +233,7 @@ Each animated state of the scenes (still when the system asks for reduced motion
 
 ## How it works
 
-The resource runs on every dashboard. On a dashboard whose configuration has a `dashboard_header:` block, it inserts its banner into the dashboard's header (`hui-root`) and hides the native title and tabs; the native toolbar is laid over the banner, so its buttons keep their behavior. It sets `--header-height` to the banner's height so the views start below it. Templates are rendered by Home Assistant (`render_template` subscriptions), entity states are followed live. In edit mode, on subviews, on a view with `enabled: false` and on dashboards without the block, it removes itself and the native header is back.
+The resource runs on every dashboard. On a dashboard whose configuration has a `dashboard_header:` block, it inserts its banner into the dashboard's header (`hui-root`) and hides the native title and tabs; the native toolbar is laid over the banner, so its buttons keep their behavior. It sets `--header-height` to the banner's height so the views start below it. Templates are rendered by Home Assistant (`render_template` subscriptions), entity states are followed live. In edit mode, on subviews, on a view with `enabled: false` and on dashboards without the block, it removes itself and the native header is back. On an app panel listed under `panels:` (`ha-panel-app`), the banner is put before the app's frame, whose height is reduced by the banner's.
 
 Because it builds on the inside of Home Assistant's dashboard header, a frontend release that changes that header may need an update of this resource.
 

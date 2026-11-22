@@ -195,3 +195,47 @@ test("relayout: the root's style sheet put back and a resize sent, only for the 
   assert.deepEqual(appended, [style]);
   assert.deepEqual([...dh.dispatched], ["resize"]);
 });
+
+test("app panels: blocks listed under dashboard_header.panels, the first dashboard listing a panel wins", () => {
+  const map = dh.collectPanels([
+    null,
+    { views: [] },
+    { dashboard_header: { scene: "maison", panels: { core_ssh: { scene: "system", mode: "compact" }, bad: "x" } } },
+    { dashboard_header: { enabled: false, panels: { core_ssh: { scene: "home" }, a0d7b954_vscode: { scene: "devices" } } } },
+  ]);
+  assert.deepEqual(Object.keys(map).sort(), ["a0d7b954_vscode", "core_ssh"]);
+  assert.equal(map.core_ssh.scene, "system");
+});
+
+test("app panels: read like a dashboard block, never folding; unlisted or disabled panels keep the native page", () => {
+  const panels = { core_ssh: { scene: "system", mode: "compact", title: "Terminal" }, off: { enabled: false } };
+  const c = dh.resolvePanelConfig(panels, "core_ssh");
+  assert.equal(c.scene, "systeme");
+  assert.equal(c.mode, "compact");
+  assert.equal(c.title, "Terminal");
+  assert.equal(c.collapse, false);
+  assert.equal(dh.resolvePanelConfig({ core_ssh: { scene: "system" } }, "core_ssh").collapse, false);
+  assert.equal(dh.resolvePanelConfig(panels, "off"), null);
+  assert.equal(dh.resolvePanelConfig(panels, "other"), null);
+  assert.equal(dh.resolvePanelConfig(null, "core_ssh"), null);
+  assert.equal(dh.resolvePanelConfig(panels, ""), null);
+});
+
+test("app panels: every dashboard of the sidebar is read once per connection, the default one as url_path null", async () => {
+  const sent = [];
+  const conn = {
+    sendMessagePromise: async (msg) => {
+      sent.push(msg.url_path);
+      return msg.url_path === "dashboard-system" ? { dashboard_header: { panels: { core_ssh: { scene: "system" } } } } : {};
+    },
+  };
+  const hass = {
+    connection: conn,
+    panels: { lovelace: { component_name: "lovelace", url_path: "lovelace" }, "dashboard-system": { component_name: "lovelace", url_path: "dashboard-system" }, core_ssh: { component_name: "app", url_path: "core_ssh" } },
+  };
+  assert.equal(dh.panelConfigs(hass), null);
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(sent, [null, "dashboard-system"]);
+  assert.equal(dh.panelConfigs(hass).core_ssh.scene, "system");
+  assert.equal(sent.length, 2);
+});
