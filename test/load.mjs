@@ -1,9 +1,8 @@
-// Evaluates src/dashboard-header.js (a classic script, bundled as is by scripts/build.mjs) in a sandbox with minimal
+// Evaluates the bundled card source (test/source.mjs) (a classic script, bundled as is by scripts/build.mjs) in a sandbox with minimal
 // DOM stand-ins and returns its test hooks (window.dashboardHeader). No dependency, no browser.
-import { readFileSync } from "node:fs";
 import vm from "node:vm";
+import { source } from "./source.mjs";
 
-const source = readFileSync(new URL("../src/dashboard-header.js", import.meta.url), "utf8");
 
 export const load = () => {
   const registry = new Map();
