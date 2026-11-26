@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.0 - 2026-11-26
+
+### Features
+- Thirteen new scenes: the rooms of the house — `salle_de_bain` (bath steaming with the humidity, extractor fan), `toilettes` (free / occupied sign), `chambre_parents` (bedside lamps, roller shutter, sleep), `chambre_bebe` (night light, mobile turning with the music), `chambre_enfant`, `chambre_ado` (PC screen, LED strip in its color), `garage` (sectional door at its position, car inside or away), `couloir` (motion sensor), `bureau` (screens, desk lamp, "on air" light), `buanderie` (washer and dryer drums turning) —, `entree` (outside: porch light, doorbell, letterbox flag, parcel), `entree_interieure` (inside: lock LED, alarm keypad) and `jardin` (sprinkler, robot mower, garden lamps).
+- Scene names may be written with spaces, dashes and accents (`Salle de bain`, `chambre-bébé`), with English aliases for the new scenes.
+- The `entrance` alias now picks the new `entree` scene (it was `couloir`); the hallway shows a room door instead of the front door.
+
 ## 1.4.1 - 2026-11-24
 
 ### Maintenance

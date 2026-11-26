@@ -12,6 +12,19 @@ const VIEWS = {
   securite: ["Alarm", "Cameras", "Detectors", "Access"],
   famille: ["Today", "Calendar", "School", "Parcels", "Transport"],
   exterieur: ["Terrace", "Garden", "Weather"],
+  salle_de_bain: ["Bathroom", "Heating", "Humidity"],
+  toilettes: ["Toilet", "Ventilation"],
+  chambre_parents: ["Bedroom", "Shutters", "Climate"],
+  chambre_bebe: ["Nursery", "Monitor", "Climate"],
+  chambre_enfant: ["Kids", "Lights", "Shutters"],
+  chambre_ado: ["Teen", "PC", "Lights"],
+  garage: ["Garage", "Car", "Tools"],
+  couloir: ["Hallway", "Entrance", "Lights"],
+  bureau: ["Office", "PC", "Climate"],
+  buanderie: ["Laundry", "Washer", "Dryer"],
+  entree: ["Entrance", "Doorbell", "Mail"],
+  jardin: ["Garden", "Watering", "Mower"],
+  entree_interieure: ["Entrance", "Alarm", "Lock"],
 };
 
 // One dashboard per scene: its title, views, and the header block of its YAML.
@@ -33,6 +46,19 @@ export const DASHBOARDS = {
   securite: { title: "Security", header: { scene: "securite", subtitle: "Disarmed · front door locked · 3 cameras private", status: { text: "Protected", color: "green" }, scene_state: { alarm: "disarmed", lock: "locked", camera_privacy: "on" } } },
   famille: { title: "Family", header: { scene: "famille", subtitle: "School tomorrow · yellow bin tomorrow morning", status: { text: "School tomorrow", color: "green" }, scene_state: { school: "on", bin: "yellow" } } },
   exterieur: { title: "Outdoor", header: { scene: "exterieur", subtitle: "8 °C · rain around 2 pm", status: { text: "Rain at 2 pm", color: "cyan" }, scene_state: { rain: "off", lamp: "off" } } },
+  salle_de_bain: { title: "Bathroom", header: { scene: "salle_de_bain", subtitle: "22 °C · 58 % humidity", status: { text: "Dry", color: "green" }, scene_state: { light: "on", humidity: "58", fan: "off" } } },
+  toilettes: { title: "Toilet", header: { scene: "toilettes", subtitle: "Free · fan off", status: { text: "Free", color: "green" }, scene_state: { light: "off", occupied: "off", fan: "off" } } },
+  chambre_parents: { title: "Bedroom", header: { scene: "chambre_parents", subtitle: "19 °C · shutter 40 %", status: { text: "Comfort", color: "green" }, scene_state: { lights: "on", shutter: "40", sleep: "off" } } },
+  chambre_bebe: { title: "Nursery", header: { scene: "chambre_bebe", subtitle: "20 °C · asleep for 1 h 12", status: { text: "Asleep", color: "violet" }, scene_state: { night_light: "on", sleep: "on", music: "off" } } },
+  chambre_enfant: { title: "Kids", header: { scene: "chambre_enfant", subtitle: "20 °C · lights on", status: { text: "Awake", color: "amber" }, scene_state: { lights: "on", sleep: "off", shutter: "100" } } },
+  chambre_ado: { title: "Teen", header: { scene: "chambre_ado", subtitle: "PC on · LED strip violet", status: { text: "Gaming", color: "violet" }, scene_state: { lights: "off", pc: "on", led: "violet" } } },
+  garage: { title: "Garage", header: { scene: "garage", subtitle: "Door closed · car inside", status: { text: "Closed", color: "green" }, scene_state: { door: "closed", car: "on", light: "off" } } },
+  couloir: { title: "Hallway", header: { scene: "couloir", subtitle: "Bedroom door closed · no motion", status: { text: "Calm", color: "green" }, scene_state: { lights: "on", motion: "off", door: "off" } } },
+  bureau: { title: "Office", header: { scene: "bureau", subtitle: "21 °C · PC on", status: { text: "Working", color: "blue" }, scene_state: { pc: "on", lamp: "on", busy: "off" } } },
+  buanderie: { title: "Laundry", header: { scene: "buanderie", subtitle: "Washer idle · dryer idle", status: { text: "Idle", color: "gray" }, scene_state: { washer: "off", dryer: "off" } } },
+  entree: { title: "Entrance", header: { scene: "entree", subtitle: "Door locked · 1 letter", status: { text: "Mail", color: "blue" }, scene_state: { light: "off", door: "off", doorbell: "off", mailbox: "on", parcel: "off" } } },
+  entree_interieure: { title: "Entryway", header: { scene: "entree_interieure", subtitle: "Front door locked · alarm armed away", status: { text: "Armed", color: "green" }, scene_state: { lights: "on", lock: "locked", alarm: "armed_away", door: "off" } } },
+  jardin: { title: "Garden", header: { scene: "jardin", subtitle: "Soil 34 % · mower docked", status: { text: "All good", color: "green" }, scene_state: { watering: "off", mower: "docked", lights: "off" } } },
 };
 export const viewsOf = (scene) => VIEWS[scene].map((title, i) => ({ title, path: `v${i}` }));
 
@@ -40,7 +66,10 @@ const shot = (file, theme, scene, extra = {}) => ({ file, theme, scene, width: 1
 const twins = (file, scene, extra) => [shot(file, "light", scene, extra), shot(`${file}-dark`, "dark", scene, extra)];
 
 export const shots = [
-  // The illustrated header of each scene, desktop.
+  // The illustrated header of each scene, desktop (scene-<name>): scene-maison, scene-equipements, scene-voitures,
+  // scene-energie, scene-systeme, scene-securite, scene-famille, scene-exterieur, scene-salle_de_bain, scene-toilettes,
+  // scene-chambre_parents, scene-chambre_bebe, scene-chambre_enfant, scene-chambre_ado, scene-garage, scene-couloir,
+  // scene-bureau, scene-buanderie, scene-entree, scene-entree_interieure, scene-jardin.
   ...Object.keys(DASHBOARDS).flatMap((scene) => twins(`scene-${scene}`, scene)),
   // Compact mode, desktop and phone; folded on scroll; the illustrated header on a phone.
   // The cars scene's other layouts: the driveway (the compact is away, its spot left empty) and the station.
@@ -89,5 +118,17 @@ export const gifs = [
   ...twins("system-warning", "systeme", { header: { status: { text: "2 updates", color: "amber" }, scene_state: { alert: "warning" } } }),
   ...twins("energy-power", "energie", { header: { status: { text: "Red day", color: "red" }, scene_state: { tempo: "Rouge", power: "on" } } }),
   ...twins("rain", "exterieur", { header: { scene_state: { rain: "on", lamp: "on" } } }),
+  ...twins("bathroom-steam", "salle_de_bain", { header: { status: { text: "Humid", color: "cyan" }, scene_state: { light: "on", humidity: "82", fan: "on" } } }),
+  ...twins("toilet-occupied", "toilettes", { header: { status: { text: "Occupied", color: "red" }, scene_state: { light: "on", occupied: "on", fan: "on" } } }),
+  ...twins("bedroom-sleep", "chambre_parents", { header: { status: { text: "Night", color: "violet" }, scene_state: { lights: "off", shutter: "0", sleep: "on" } } }),
+  ...twins("nursery-music", "chambre_bebe", { header: { status: { text: "Lullaby", color: "violet" }, scene_state: { night_light: "on", sleep: "on", music: "on" } } }),
+  ...twins("kids-sleep", "chambre_enfant", { header: { status: { text: "Asleep", color: "violet" }, scene_state: { lights: "off", sleep: "on", shutter: "0" } } }),
+  ...twins("garage-opening", "garage", { header: { status: { text: "Opening", color: "amber" }, scene_state: { door: "opening", car: "on", light: "on" } } }),
+  ...twins("hallway-motion", "couloir", { header: { status: { text: "Motion", color: "red" }, scene_state: { lights: "on", motion: "on", door: "on" } } }),
+  ...twins("office-busy", "bureau", { header: { status: { text: "In a call", color: "red" }, scene_state: { pc: "on", lamp: "on", busy: "on" } } }),
+  ...twins("laundry-running", "buanderie", { header: { status: { text: "2 running", color: "cyan" }, scene_state: { washer: "on", dryer: "on" } } }),
+  ...twins("entrance-doorbell", "entree", { header: { status: { text: "Someone's at the door", color: "amber" }, scene_state: { light: "on", door: "off", doorbell: "on", mailbox: "off", parcel: "on" } } }),
+  ...twins("entryway-unlocked", "entree_interieure", { header: { status: { text: "Door open", color: "amber" }, scene_state: { lights: "on", lock: "unlocked", alarm: "pending", door: "on" } } }),
+  ...twins("garden-watering", "jardin", { header: { status: { text: "Watering", color: "cyan" }, scene_state: { watering: "on", mower: "mowing", lights: "on" } } }),
   ...twins("energy-now", "energie", { header: { status: { text: "1.24 kW", color: "amber" }, scene_state: { layout: "now", grid: "0.44", solar: "0.8" } } }),
 ];
