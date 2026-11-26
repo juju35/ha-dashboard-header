@@ -19,7 +19,7 @@
 ## Features
 
 - **Twenty-one scenes**, one per kind of dashboard: `maison`, `equipements`, `voitures`, `energie`, `systeme`, `securite`, `famille`, `exterieur` (English names work too: `home`, `devices`, `cars`, `energy`, `system`, `security`, `family`, `outdoor`).
-- **Rooms, entrances and garden**: `salle_de_bain`, `toilettes`, `chambre_parents`, `chambre_bebe`, `chambre_enfant`, `chambre_ado`, `garage`, `couloir`, `bureau`, `buanderie`, `entree` (outside), `entree_interieure` (inside), `jardin` (also `bathroom`, `toilet`, `bedroom`, `nursery`, `kids`, `teen`, `garage`, `hallway`, `office`, `laundry`, `entrance`, `foyer`, `garden`; spaces and accents are fine: `Salle de bain`, `chambre bébé`).
+- **Rooms, entrances and garden**: `bathroom`, `toilet`, `bedroom`, `nursery`, `kids_room`, `teen_room`, `garage`, `hallway`, `office`, `laundry`, `entrance` (outside), `entryway` (inside), `garden` (their French names work too: `salle_de_bain`, `toilettes`, `chambre_parents`, `chambre_bebe`, `chambre_enfant`, `chambre_ado`, `couloir`, `bureau`, `buanderie`, `entree`, `entree_interieure`, `jardin`; spaces and accents are fine: `Salle de bain`, `chambre bébé`).
 - **The scene follows your home**: lit windows when the lights are on, the robot vacuum leaving its dock, the meter showing today's Tempo color, a blinking LED on the server rack, the alarm shield turning red, rain on the terrace… (`scene_state`, any entity or template).
 - **Live title, subtitle and status pill** from entities or templates, rendered by Home Assistant.
 - **Two modes**: `illustrated` (band + text tabs) or `compact` (one bar, pill tabs). The illustrated header **folds to the compact bar when you scroll**, and unfolds at the top.
@@ -112,7 +112,7 @@ views:
 
 | Option | Default | Description |
 |---|---|---|
-| `scene` | `maison` | The illustration: `maison`, `equipements`, `voitures`, `energie`, `systeme`, `securite`, `famille`, `exterieur`, a room (`salle_de_bain`, `toilettes`, `chambre_parents`, `chambre_bebe`, `chambre_enfant`, `chambre_ado`, `garage`, `couloir`, `bureau`, `buanderie`), `entree`, `entree_interieure`, `jardin`, or `none` (band without a picture). English aliases accepted. |
+| `scene` | `maison` | The illustration: `maison`, `equipements`, `voitures`, `energie`, `systeme`, `securite`, `famille`, `exterieur`, a room (`bathroom`, `toilet`, `bedroom`, `nursery`, `kids_room`, `teen_room`, `garage`, `hallway`, `office`, `laundry`), `entrance`, `entryway`, `garden`, or `none` (band without a picture). English and French aliases accepted. |
 | `mode` | `illustrated` | `illustrated` (90 px band and text tabs) or `compact` (64 px bar, pill tabs). |
 | `collapse_on_scroll` | `true` | Illustrated mode: fold to the compact bar once the page scrolls, unfold at the top. |
 | `title` | dashboard title | Text, entity id or template. |
@@ -225,41 +225,41 @@ The `panels:` lists are read when the panel opens (see [App panels](#app-panels-
 | | `bin` | A bin in the collection's color (`jaune`/`yellow`, `vert`/`green`, `bleu`/`blue`, `marron`/`brown`, `gris`/`gray` or a CSS color); none when empty or off. |
 | `exterieur` | `rain` | Rain falls from the cloud when on. |
 | | `lamp` | The terrace lamp is lit when on. |
-| `salle_de_bain` | `light` | The ceiling light is on. |
+| `bathroom` | `light` | The ceiling light is on. |
 | | `humidity` | Steam rises over the bath from 70 % (or when on). |
 | | `fan` | The extractor fan turns when on. |
-| `toilettes` | `light`, `fan` | Ceiling light on, extractor fan turning. |
+| `toilet` | `light`, `fan` | Ceiling light on, extractor fan turning. |
 | | `occupied` | The door sign turns red (occupied) or green (free). |
-| `chambre_parents` | `lights` | The bedside lamps are lit. |
+| `bedroom` | `lights` | The bedside lamps are lit. |
 | | `shutter` | The roller shutter: a cover position (100 = open) or `open` / `closed`. |
 | | `sleep` | "zZ" rise over the bed when on. |
-| `chambre_bebe` | `night_light` | The night light glows on the dresser. |
+| `nursery` | `night_light` | The night light glows on the dresser. |
 | | `sleep` | "zZ" rise over the crib. |
 | | `music` | The mobile sways over the crib. |
-| `chambre_enfant` | `lights`, `sleep`, `shutter` | Ceiling light and star lamp, "zZ" over the bed, the roller shutter. |
-| `chambre_ado` | `lights` | The ceiling light is on. |
+| `kids_room` | `lights`, `sleep`, `shutter` | Ceiling light and star lamp, "zZ" over the bed, the roller shutter. |
+| `teen_room` | `lights` | The ceiling light is on. |
 | | `pc` | The screen and the PC's LEDs light up. |
 | | `led` | The LED strip along the ceiling in this color (a palette name or CSS color; violet when simply on). |
 | `garage` | `door` | The sectional door raised to its position (`open`, `closed`, `opening` / `closing` pulsing, or a cover position). |
 | | `car` | The car inside (default), or its empty spot when off. |
 | | `light` | The ceiling light is on. |
-| `couloir` | `lights` | The ceiling lights and the console lamp are lit. |
+| `hallway` | `lights` | The ceiling lights and the console lamp are lit. |
 | | `motion` | The motion sensor blinks red. |
 | | `door` | The room door is ajar when on. |
-| `bureau` | `pc` | Both screens light up. |
+| `office` | `pc` | Both screens light up. |
 | | `lamp` | The desk lamp is lit. |
 | | `busy` | The "ON AIR" light turns red during a call. |
-| `buanderie` | `washer`, `dryer` | The drum turns and a programme bar runs while on. |
-| `entree` | `light` | The porch light and the windows are lit. |
+| `laundry` | `washer`, `dryer` | The drum turns and a programme bar runs while on. |
+| `entrance` | `light` | The porch light and the windows are lit. |
 | | `door` | The front door is open. |
 | | `doorbell` | The doorbell rings when on. |
 | | `mailbox` | The letterbox flag is up when on. |
 | | `parcel` | A parcel waits on the doorstep. |
-| `entree_interieure` | `lights` | The ceiling light is on. |
+| `entryway` | `lights` | The ceiling light is on. |
 | | `lock` | The lock LED: green locked, amber unlocked, red open or jammed. |
 | | `alarm` | The keypad LED: green armed, amber blinking pending, red triggered, gray disarmed. |
 | | `door` | The front door is open. |
-| `jardin` | `watering` | The sprinkler sprays when on. |
+| `garden` | `watering` | The sprinkler sprays when on. |
 | | `mower` | The robot mower leaves its station while mowing. |
 | | `lights` | The garden lamps are lit. |
 
@@ -278,19 +278,19 @@ The `panels:` lists are read when the panel opens (see [App panels](#app-panels-
 | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-securite.png" alt="Security scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-securite-dark.png" alt="Security scene, dark" width="420"> |
 | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-famille.png" alt="Family scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-famille-dark.png" alt="Family scene, dark" width="420"> |
 | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-exterieur.png" alt="Outdoor scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-exterieur-dark.png" alt="Outdoor scene, dark" width="420"> |
-| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-salle_de_bain.png" alt="Bathroom scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-salle_de_bain-dark.png" alt="Bathroom scene, dark" width="420"> |
-| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-toilettes.png" alt="Toilet scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-toilettes-dark.png" alt="Toilet scene, dark" width="420"> |
-| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-chambre_parents.png" alt="Bedroom scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-chambre_parents-dark.png" alt="Bedroom scene, dark" width="420"> |
-| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-chambre_bebe.png" alt="Nursery scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-chambre_bebe-dark.png" alt="Nursery scene, dark" width="420"> |
-| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-chambre_enfant.png" alt="Kids room scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-chambre_enfant-dark.png" alt="Kids room scene, dark" width="420"> |
-| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-chambre_ado.png" alt="Teen room scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-chambre_ado-dark.png" alt="Teen room scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-bathroom.png" alt="Bathroom scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-bathroom-dark.png" alt="Bathroom scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-toilet.png" alt="Toilet scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-toilet-dark.png" alt="Toilet scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-bedroom.png" alt="Bedroom scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-bedroom-dark.png" alt="Bedroom scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-nursery.png" alt="Nursery scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-nursery-dark.png" alt="Nursery scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-kids_room.png" alt="Kids room scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-kids_room-dark.png" alt="Kids room scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-teen_room.png" alt="Teen room scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-teen_room-dark.png" alt="Teen room scene, dark" width="420"> |
 | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-garage.png" alt="Garage scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-garage-dark.png" alt="Garage scene, dark" width="420"> |
-| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-couloir.png" alt="Hallway scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-couloir-dark.png" alt="Hallway scene, dark" width="420"> |
-| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-bureau.png" alt="Office scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-bureau-dark.png" alt="Office scene, dark" width="420"> |
-| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-buanderie.png" alt="Laundry scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-buanderie-dark.png" alt="Laundry scene, dark" width="420"> |
-| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-entree.png" alt="Entrance (outside) scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-entree-dark.png" alt="Entrance (outside) scene, dark" width="420"> |
-| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-entree_interieure.png" alt="Entryway (inside) scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-entree_interieure-dark.png" alt="Entryway (inside) scene, dark" width="420"> |
-| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-jardin.png" alt="Garden scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-jardin-dark.png" alt="Garden scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-hallway.png" alt="Hallway scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-hallway-dark.png" alt="Hallway scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-office.png" alt="Office scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-office-dark.png" alt="Office scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-laundry.png" alt="Laundry scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-laundry-dark.png" alt="Laundry scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-entrance.png" alt="Entrance (outside) scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-entrance-dark.png" alt="Entrance (outside) scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-entryway.png" alt="Entryway (inside) scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-entryway-dark.png" alt="Entryway (inside) scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-garden.png" alt="Garden scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-garden-dark.png" alt="Garden scene, dark" width="420"> |
 
 ### Cars: driveway and station layouts
 

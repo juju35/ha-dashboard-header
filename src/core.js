@@ -680,7 +680,7 @@
         );
       },
     },
-    salle_de_bain: {
+    bathroom: {
       icon: "mdi:shower",
       accent: "cyan",
       bg: "wall2",
@@ -711,7 +711,7 @@
         );
       },
     },
-    toilettes: {
+    toilet: {
       icon: "mdi:toilet",
       accent: "green",
       bg: "wall2",
@@ -737,7 +737,7 @@
         );
       },
     },
-    chambre_parents: {
+    bedroom: {
       icon: "mdi:bed-king",
       accent: "violet",
       bg: "wall",
@@ -760,7 +760,7 @@
         );
       },
     },
-    chambre_bebe: {
+    nursery: {
       icon: "mdi:teddy-bear",
       accent: "violet",
       band: (mode) => ROOM[mode].babyWall,
@@ -791,7 +791,7 @@
         );
       },
     },
-    chambre_enfant: {
+    kids_room: {
       icon: "mdi:toy-brick",
       accent: "amber",
       bg: "wall",
@@ -817,7 +817,7 @@
         );
       },
     },
-    chambre_ado: {
+    teen_room: {
       icon: "mdi:gamepad-variant",
       accent: "violet",
       bg: "wall2",
@@ -882,7 +882,7 @@
         );
       },
     },
-    couloir: {
+    hallway: {
       icon: "mdi:coat-rack",
       accent: "amber",
       bg: "wall",
@@ -915,7 +915,7 @@
         );
       },
     },
-    bureau: {
+    office: {
       icon: "mdi:desk",
       accent: "blue",
       bg: "wall",
@@ -953,7 +953,7 @@
         );
       },
     },
-    buanderie: {
+    laundry: {
       icon: "mdi:washing-machine",
       accent: "cyan",
       bg: "wall2",
@@ -982,7 +982,7 @@
         );
       },
     },
-    entree: {
+    entrance: {
       icon: "mdi:door-closed",
       accent: "amber",
       bg: "sky",
@@ -1022,7 +1022,7 @@
         );
       },
     },
-    jardin: {
+    garden: {
       icon: "mdi:flower",
       accent: "green",
       bg: "sky",
@@ -1063,7 +1063,7 @@
         );
       },
     },
-    entree_interieure: {
+    entryway: {
       icon: "mdi:door-open",
       accent: "green",
       bg: "wall",
@@ -1106,13 +1106,16 @@
     },
   };
   const SCENE_ALIASES = { home: "maison", house: "maison", devices: "equipements", equipment: "equipements", "équipements": "equipements", cars: "voitures", vehicles: "voitures", energy: "energie", "énergie": "energie", system: "systeme", "système": "systeme", security: "securite", "sécurité": "securite", family: "famille", outdoor: "exterieur", "extérieur": "exterieur",
-    bathroom: "salle_de_bain", salle_de_bains: "salle_de_bain", sdb: "salle_de_bain", toilet: "toilettes", toilets: "toilettes", wc: "toilettes",
-    bedroom: "chambre_parents", master_bedroom: "chambre_parents", parents: "chambre_parents", nursery: "chambre_bebe", baby: "chambre_bebe", bebe: "chambre_bebe",
-    kids: "chambre_enfant", kid: "chambre_enfant", child: "chambre_enfant", kids_room: "chambre_enfant", enfant: "chambre_enfant",
-    teen: "chambre_ado", teenager: "chambre_ado", teen_room: "chambre_ado", chambre_adolescent: "chambre_ado", ado: "chambre_ado", adolescent: "chambre_ado",
-    hallway: "couloir", hall: "couloir", corridor: "couloir",
-    entrance: "entree", front_door: "entree", entree_exterieure: "entree", porch: "entree", outdoor_entrance: "entree",
-    inside_entrance: "entree_interieure", indoor_entrance: "entree_interieure", foyer: "entree_interieure", mudroom: "entree_interieure", entryway: "entree_interieure", garden: "jardin", yard: "jardin", office: "bureau", study: "bureau", laundry: "buanderie", laundry_room: "buanderie" };
+    // The rooms, entrances and garden have English names; their French names (and a few others) are aliases.
+    salle_de_bain: "bathroom", salle_de_bains: "bathroom", sdb: "bathroom", toilettes: "toilet", toilets: "toilet", wc: "toilet",
+    chambre_parents: "bedroom", chambre: "bedroom", master_bedroom: "bedroom", parents: "bedroom",
+    chambre_bebe: "nursery", baby: "nursery", bebe: "nursery", baby_room: "nursery",
+    chambre_enfant: "kids_room", kids: "kids_room", kid: "kids_room", child: "kids_room", enfant: "kids_room",
+    chambre_ado: "teen_room", chambre_adolescent: "teen_room", teen: "teen_room", teenager: "teen_room", ado: "teen_room", adolescent: "teen_room",
+    couloir: "hallway", hall: "hallway", corridor: "hallway", bureau: "office", study: "office", buanderie: "laundry", laundry_room: "laundry",
+    entree: "entrance", entree_exterieure: "entrance", front_door: "entrance", porch: "entrance", outdoor_entrance: "entrance",
+    entree_interieure: "entryway", foyer: "entryway", mudroom: "entryway", inside_entrance: "entryway", indoor_entrance: "entryway",
+    jardin: "garden", yard: "garden" };
   const sceneName = (v) => {
     const raw = String(v ?? "maison").toLowerCase();
     if (SCENES[raw]) return raw;
