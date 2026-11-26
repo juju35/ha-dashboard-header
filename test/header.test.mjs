@@ -278,3 +278,32 @@ test("energy layouts: names in English and French; values with their unit, text 
   assert.equal(dh.amount("Blue day", "kW", hass), "Blue day");
   assert.equal(dh.amount("", "kW", hass), "");
 });
+
+test("mode auto: compact on a phone layout or under compact_below, illustrated otherwise; it folds", () => {
+  const c = dh.resolveConfig({ dashboard_header: { mode: "auto" } });
+  assert.equal(c.mode, "auto");
+  assert.equal(c.collapse, true);
+  assert.equal(dh.effectiveMode(c, 1280, false), "illustrated");
+  assert.equal(dh.effectiveMode(c, 390, true), "compact");
+  const t = dh.resolveConfig({ dashboard_header: { mode: "auto", compact_below: 600 } });
+  assert.equal(dh.effectiveMode(t, 768, true), "illustrated");
+  assert.equal(dh.effectiveMode(t, 390, true), "compact");
+  assert.equal(dh.effectiveMode(dh.resolveConfig({ dashboard_header: { mode: "compact" } }), 1280, false), "compact");
+});
+
+test("subviews: the dashboard block with the subview's title and icon, the dashboard title as subtitle", () => {
+  const lovelace = { title: "Home", dashboard_header: { scene: "maison", subtitle: "8 °C" } };
+  const c = dh.resolveSubviewConfig(lovelace, { title: "Lights", icon: "mdi:sofa", subview: true });
+  assert.equal(c.subview, true);
+  assert.equal(c.title, "Lights");
+  assert.equal(c.subtitle, "Home");
+  assert.equal(c.icon, "mdi:sofa");
+  assert.equal(dh.resolveSubviewConfig(lovelace, { subview: true, dashboard_header: { subtitle: "3 on" } }).subtitle, "3 on");
+  assert.equal(dh.resolveSubviewConfig(lovelace, { subview: true, dashboard_header: { enabled: false } }), null);
+});
+
+test("subviews: false keeps the native header, unless the subview has its own block", () => {
+  const lovelace = { dashboard_header: { subviews: false } };
+  assert.equal(dh.resolveSubviewConfig(lovelace, { subview: true }), null);
+  assert.equal(dh.resolveSubviewConfig(lovelace, { subview: true, dashboard_header: { mode: "compact" } }).mode, "compact");
+});

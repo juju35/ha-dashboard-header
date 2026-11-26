@@ -22,10 +22,11 @@
 - **Rooms, entrances and garden**: `bathroom`, `toilet`, `bedroom`, `nursery`, `kids_room`, `teen_room`, `garage`, `hallway`, `office`, `laundry`, `entrance` (outside), `entryway` (inside), `garden` (their French names work too: `salle_de_bain`, `toilettes`, `chambre_parents`, `chambre_bebe`, `chambre_enfant`, `chambre_ado`, `couloir`, `bureau`, `buanderie`, `entree`, `entree_interieure`, `jardin`; spaces and accents are fine: `Salle de bain`, `chambre bébé`).
 - **The scene follows your home**: lit windows when the lights are on, the robot vacuum leaving its dock, the meter showing today's Tempo color, a blinking LED on the server rack, the alarm shield turning red, rain on the terrace… (`scene_state`, any entity or template).
 - **Live title, subtitle and status pill** from entities or templates, rendered by Home Assistant.
-- **Two modes**: `illustrated` (band + text tabs) or `compact` (one bar, pill tabs). The illustrated header **folds to the compact bar when you scroll**, and unfolds at the top.
+- **Two modes**: `illustrated` (band + text tabs) or `compact` (one bar, pill tabs) — or `auto`: illustrated on a computer, compact on a phone. The illustrated header **folds to the compact bar when you scroll**, and unfolds at the top.
 - **Day and night**: the scene follows the Home Assistant theme (dark theme = night), or is forced with `illustration_theme`.
-- **Nothing native is lost**: Home Assistant's own toolbar stays — sidebar button, search, Assist and the dashboard menu work as before, restyled as round buttons. Edit mode, subviews and dashboards without the option keep the native header.
+- **Nothing native is lost**: Home Assistant's own toolbar stays — sidebar button, search, Assist and the dashboard menu work as before, restyled as round buttons. Edit mode and dashboards without the option keep the native header.
 - **Per view**: a view can change the scene, the subtitle, the status… or turn the header off.
+- **Subviews**: the header follows into subviews, with a back button (Home Assistant's own, `back_path` included), the subview's title and icon, and the dashboard's title as a breadcrumb.
 - **App panels too**: add-on pages of the sidebar (Terminal & SSH, File editor…) can get a banner above the app.
 - **Energy panel**: a layout per tab — grid, gas and water today; the Linky in its Tempo color with solar panels and battery; live power running to the house.
 - Phones: the scene moves under the buttons, the status becomes a dot, tabs scroll.
@@ -82,7 +83,7 @@ views:
 ```yaml
 dashboard_header:
   scene: maison
-  mode: illustrated            # or compact
+  mode: illustrated            # or compact, or auto (compact on phones)
   collapse_on_scroll: true     # fold to the compact bar when scrolling
   title: Home                  # default: the dashboard's title
   subtitle: >-
@@ -113,7 +114,8 @@ views:
 | Option | Default | Description |
 |---|---|---|
 | `scene` | `maison` | The illustration: `maison`, `equipements`, `voitures`, `energie`, `systeme`, `securite`, `famille`, `exterieur`, a room (`bathroom`, `toilet`, `bedroom`, `nursery`, `kids_room`, `teen_room`, `garage`, `hallway`, `office`, `laundry`), `entrance`, `entryway`, `garden`, or `none` (band without a picture). English and French aliases accepted. |
-| `mode` | `illustrated` | `illustrated` (90 px band and text tabs) or `compact` (64 px bar, pill tabs). |
+| `mode` | `illustrated` | `illustrated` (90 px band and text tabs), `compact` (64 px bar, pill tabs) or `auto` (compact where Home Assistant lays the page out for a phone, illustrated elsewhere; follows rotation and resizing). |
+| `compact_below` | — | With `mode: auto`: switch to compact under this window width, in px (e.g. `600`), instead of Home Assistant's phone layout. |
 | `collapse_on_scroll` | `true` | Illustrated mode: fold to the compact bar once the page scrolls, unfold at the top. |
 | `title` | dashboard title | Text, entity id or template. |
 | `subtitle` | — | Text, entity id or template. |
@@ -125,9 +127,27 @@ views:
 | `scene_state` | — | What the scene shows: see below. Each value is an entity id, a template or a literal. |
 | `illustration_theme` | theme | `day` or `night` to force the scene; by default dark theme = night. |
 | `enabled` | `true` | In a view's block: `false` keeps the native header on that view. |
+| `subviews` | `true` | Dashboard block: `false` keeps the native header on subviews (a subview with its own block still gets the banner). See [Subviews](#subviews). |
 | `panels` | — | Dashboard block only: header blocks of app panels and of the Energy panel by URL path, see [App panels](#app-panels-add-ons) and [Energy panel](#energy-panel). |
 
 Every option can be set again in a view's own `dashboard_header:` block; it overlays the dashboard's block (`scene_state` and `status` are merged key by key).
+
+### Subviews
+
+A subview (`subview: true`) gets the banner too, without tabs (Home Assistant shows none there). A back button takes the place of the sidebar button: it is Home Assistant's own, so `back_path` keeps working. The title is the subview's, its `icon` replaces the scene's, and the dashboard's title shows as the subtitle. A subview may have its own `dashboard_header:` block like any view:
+
+```yaml
+views:
+  - title: Living room lights
+    path: living-room-lights
+    subview: true
+    back_path: /dashboard-home/living-room
+    icon: mdi:sofa
+    dashboard_header:
+      subtitle: "{{ states.light | selectattr('state', 'eq', 'on') | list | count }} on"
+```
+
+Set `subviews: false` in the dashboard's block to keep the native header on its subviews.
 
 ### App panels (add-ons)
 
@@ -326,6 +346,15 @@ The `panels:` lists are read when the panel opens (see [App panels](#app-panels-
 | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/phone.png" alt="Phone, illustrated" width="260"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/compact-phone.png" alt="Phone, compact" width="260"> |
 | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/phone-dark.png" alt="Phone, illustrated, dark" width="260"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/compact-phone-dark.png" alt="Phone, compact, dark" width="260"> |
 
+### Subviews
+
+Illustrated on a computer, and `mode: auto` on a phone:
+
+| Light | Dark |
+|---|---|
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/subview.png" alt="Subview" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/subview-dark.png" alt="Subview, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/subview-phone.png" alt="Subview on a phone" width="260"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/subview-phone-dark.png" alt="Subview on a phone, dark" width="260"> |
+
 ### Animations
 
 Each animated state of the scenes (still when the system asks for reduced motion):
@@ -353,7 +382,7 @@ Each animated state of the scenes (still when the system asks for reduced motion
 
 ## How it works
 
-The resource runs on every dashboard. On a dashboard whose configuration has a `dashboard_header:` block, it inserts its banner into the dashboard's header (`hui-root`) and hides the native title and tabs; the native toolbar is laid over the banner, so its buttons keep their behavior. It sets `--header-height` to the banner's height so the views start below it. Templates are rendered by Home Assistant (`render_template` subscriptions), entity states are followed live. In edit mode, on subviews, on a view with `enabled: false` and on dashboards without the block, it removes itself and the native header is back. On an app panel listed under `panels:` (`ha-panel-app`), the banner is put before the app's frame, whose height is reduced by the banner's. The Energy panel (`ha-panel-energy`) renders a dashboard root of its own, with a generated configuration: its block is taken from `panels: energy:`.
+The resource runs on every dashboard. On a dashboard whose configuration has a `dashboard_header:` block, it inserts its banner into the dashboard's header (`hui-root`) and hides the native title and tabs; the native toolbar is laid over the banner, so its buttons keep their behavior. It sets `--header-height` to the banner's height so the views start below it. Templates are rendered by Home Assistant (`render_template` subscriptions), entity states are followed live. On a subview it draws a back button that clicks Home Assistant's own (hidden) back arrow. In edit mode, on a view with `enabled: false` and on dashboards without the block, it removes itself and the native header is back. On an app panel listed under `panels:` (`ha-panel-app`), the banner is put before the app's frame, whose height is reduced by the banner's. The Energy panel (`ha-panel-energy`) renders a dashboard root of its own, with a generated configuration: its block is taken from `panels: energy:`.
 
 Because it builds on the inside of Home Assistant's dashboard header, a frontend release that changes that header may need an update of this resource.
 

@@ -85,7 +85,8 @@ No capture that serves no purpose: every file in `screenshots/` is shown in the 
 - New scene or visual rework: **propose design options to choose from** before implementing.
 - The header builds on Home Assistant's `hui-root` (header, `.toolbar`, `--header-height`): when a frontend release
   changes it, compare with `src/panels/lovelace/hui-root.ts` and keep the stand-in in `scripts/screenshots.mjs` in step.
-- Native toolbar buttons are never replaced, only restyled; edit mode and subviews keep the native header.
+- Native toolbar buttons are never replaced, only restyled; edit mode keeps the native header. On subviews the banner's
+  back button clicks Home Assistant's own (hidden) back arrow, so `back_path` stays Home Assistant's.
 
 ## Conventions
 - Prefer YAML over UI configuration; keep configurations minimal; test iteratively.
