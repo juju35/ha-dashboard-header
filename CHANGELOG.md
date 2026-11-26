@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.0 - 2026-11-26
+
+### Features
+- Subviews get the banner (#22): no tabs, a back button in place of the sidebar button — it clicks Home Assistant's own back arrow, so `back_path` keeps working —, the subview's title and icon, the dashboard's title as subtitle. A subview may have its own `dashboard_header:` block (`enabled: false` turns it off there); `subviews: false` in the dashboard's block keeps the native header on subviews. Subviews used to keep the native header: set `subviews: false` to keep it that way.
+- `mode: auto` (#22): compact where Home Assistant lays the page out for a phone, illustrated elsewhere, switched live on rotation and resizing. `compact_below: <px>` sets the window width to switch at instead.
+
 ## 1.5.0 - 2026-11-26
 
 ### Features

@@ -3,8 +3,9 @@
 // A dashboard resource (no card): on every dashboard whose YAML carries a top-level `dashboard_header:` block, it
 // replaces the look of the top bar (title and view tabs) with a 90 px illustrated band and a row of text tabs, or a
 // compact bar with pill tabs. Home Assistant's own toolbar stays in place, restyled: the sidebar button, search,
-// Assist and the dashboard menu keep working exactly as before. In edit mode, on subviews and on dashboards without
-// the block, the native header is left untouched. App panels (add-on ingress, e.g. /core_ssh) get a banner too when a
+// Assist and the dashboard menu keep working exactly as before. Subviews get the banner with a back button (Home
+// Assistant's own, so back_path is kept). In edit mode and on dashboards without the block, the native header is left
+// untouched. App panels (add-on ingress, e.g. /core_ssh) get a banner too when a
 // dashboard lists them under `dashboard_header.panels:`.
 (() => {
   // Loaded twice (dashboard resource and frontend extra_module_url): the first copy does the work.
@@ -1141,11 +1142,13 @@
     if (base.status || view.status) cfg.status = { ...(base.status || {}), ...(view.status || {}) };
     if (cfg.enabled === false) return null;
     const scene = sceneName(cfg.scene);
-    const mode = cfg.mode === "compact" ? "compact" : "illustrated";
+    const mode = cfg.mode === "compact" || cfg.mode === "auto" ? cfg.mode : "illustrated";
+    const below = Number(cfg.compact_below);
     return {
       scene,
       mode,
-      collapse: mode === "illustrated" && cfg.collapse_on_scroll !== false,
+      compactBelow: Number.isFinite(below) && below > 0 ? below : null,
+      collapse: mode !== "compact" && cfg.collapse_on_scroll !== false,
       title: cfg.title,
       subtitle: cfg.subtitle,
       icon: cfg.icon || (SCENES[scene] || SCENES.maison).icon,
@@ -1153,6 +1156,32 @@
       status: cfg.status && (cfg.status.text != null || cfg.status.entity) ? cfg.status : null,
       sceneState: cfg.scene_state,
       illustrationTheme: cfg.illustration_theme === "day" || cfg.illustration_theme === "night" ? cfg.illustration_theme : null,
+    };
+  };
+
+  // `mode: auto`: compact under `compact_below` px of window width, or (without it) where Home Assistant lays the page
+  // out for a phone (its narrow layout, the sidebar hidden); illustrated otherwise. Resolved on every sync, so turning a
+  // tablet or resizing the window switches the mode live.
+  const effectiveMode = (cfg, width, narrow) => {
+    if (cfg.mode !== "auto") return cfg.mode;
+    return (cfg.compactBelow ? width < cfg.compactBelow : narrow) ? "compact" : "illustrated";
+  };
+
+  // A subview's header: the dashboard's block overlaid by the subview's own, no tabs (Home Assistant shows none there),
+  // the back button in place of the sidebar button, the subview's title and icon. `subviews: false` on the dashboard
+  // block keeps Home Assistant's native header on subviews.
+  const resolveSubviewConfig = (lovelaceConfig, viewConfig) => {
+    if (lovelaceConfig?.dashboard_header?.subviews === false && !viewConfig?.dashboard_header) return null;
+    const cfg = resolveConfig(lovelaceConfig, viewConfig);
+    if (!cfg) return null;
+    const own = viewConfig?.dashboard_header || {};
+    return {
+      ...cfg,
+      subview: true,
+      title: own.title ?? viewConfig?.title ?? cfg.title,
+      // The dashboard's title as a breadcrumb under the subview's, unless the subview gives its own subtitle.
+      subtitle: own.subtitle ?? lovelaceConfig?.title ?? cfg.subtitle,
+      icon: own.icon || viewConfig?.icon || cfg.icon,
     };
   };
 
@@ -1219,7 +1248,7 @@
     .header .toolbar > * { pointer-events: auto; }
     .header .toolbar > ha-tab-group, .header .toolbar > .main-title { display: none !important; }
     .header .toolbar .action-items { margin-inline-start: auto; gap: 6px; }
-    .header .toolbar ha-menu-button { display: none !important; }
+    .header .toolbar ha-menu-button, .header .toolbar ha-icon-button-arrow-prev { display: none !important; }
     .header .toolbar .action-items ha-icon-button {
       --ha-icon-button-size: 44px; --mdc-icon-button-size: 44px; width: 44px; height: 44px; border-radius: 50%;
       background: var(--dh-btn-bg); border: var(--dh-btn-border); color: var(--dh-text); box-sizing: border-box; }
@@ -1337,6 +1366,7 @@
 
     _tabs() {
       const root = this._root;
+      if (this._cfg?.subview) return [];
       const views = root?.lovelace?.config?.views || [];
       const cur = currentViewIndex(root, views);
       return visibleViews(views, this.hass).map(({ view, index }) => ({
@@ -1355,6 +1385,18 @@
       const prefix = root?.route?.prefix || `/${location.pathname.split("/")[1]}`;
       history.pushState(null, "", `${prefix}/${path}${location.search}`);
       window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+    }
+
+    _goBack() {
+      const arrow = this._root?.shadowRoot?.querySelector(".toolbar ha-icon-button-arrow-prev");
+      if (arrow) return arrow.click();
+      const views = this._root?.lovelace?.config?.views || [];
+      const back = views[currentViewIndex(this._root, views)]?.back_path;
+      if (back) {
+        history.pushState(null, "", back);
+        return window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+      }
+      history.back();
     }
 
     _icon(icon, size) {
@@ -1420,8 +1462,11 @@
             : Boolean(native.shadowRoot?.querySelector("ha-icon-button"))
           : false;
       const menuDot = showMenu && Boolean(native?._hasNotifications);
+      const backLabel = hass?.localize?.("ui.common.back") || "Back";
       const menuLabel = hass?.localize?.("ui.sidebar.sidebar_toggle") || "Menu";
-      const menu = showMenu
+      const menu = cfg.subview
+        ? `<button class="menu back" type="button" aria-label="${esc(backLabel)}" title="${esc(backLabel)}"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"/></svg></button>`
+        : showMenu
         ? `<button class="menu" type="button" aria-label="${esc(menuLabel)}" title="${esc(menuLabel)}"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"/></svg>${menuDot ? '<span class="menu-dot"></span>' : ""}</button>`
         : "";
       const identity =
@@ -1449,9 +1494,11 @@
             this._navigate(a.dataset.path);
           });
         }
-        this.shadowRoot.querySelector("button.menu")?.addEventListener("click", () =>
+        this.shadowRoot.querySelector("button.menu:not(.back)")?.addEventListener("click", () =>
           this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true })),
         );
+        // Back: Home Assistant's own arrow does it (back_path, the history, or the dashboard's first view).
+        this.shadowRoot.querySelector("button.back")?.addEventListener("click", () => this._goBack());
         // The current tab in sight in a scrolling tab row (without scrolling the page).
         const nav = this.shadowRoot.querySelector("nav");
         const act = nav?.querySelector(".tab.active");
@@ -1735,12 +1782,17 @@
     const viewCfg = views[currentViewIndex(root, views)];
     // A generated panel (the Energy panel) has no YAML: its block comes from the `panels:` lists, by its URL path.
     const generated = !root.lovelace.config.dashboard_header && root.lovelace.mode === "generated" && root.lovelace.urlPath;
-    const cfg =
-      root.lovelace.editMode || viewCfg?.subview
-        ? null
-        : generated
-          ? resolvePanelConfig(panelConfigs(root.hass), root.lovelace.urlPath, viewCfg?.path ?? String(views.indexOf(viewCfg)), true)
+    let cfg = root.lovelace.editMode
+      ? null
+      : generated
+        ? resolvePanelConfig(panelConfigs(root.hass), root.lovelace.urlPath, viewCfg?.path ?? String(views.indexOf(viewCfg)), true)
+        : viewCfg?.subview
+          ? resolveSubviewConfig(root.lovelace.config, viewCfg)
           : resolveConfig(root.lovelace.config, viewCfg);
+    if (cfg?.mode === "auto") {
+      const mode = effectiveMode(cfg, window.innerWidth, Boolean(root.narrow));
+      cfg = { ...cfg, mode, collapse: mode === "illustrated" && cfg.collapse };
+    }
     const header = root.shadowRoot.querySelector(".header");
     if (!cfg || !header) return deactivate(root);
     ensureStyle(root.shadowRoot, ROOT_CSS, false);
@@ -1786,6 +1838,6 @@
   }, 1500);
   queue();
 
-  window.dashboardHeader = { VERSION, SCENES, vehicleList, PALETTE, STRINGS, resolveConfig, resolvePanelConfig, energyLayout, amount, numOf, collectPanels, panelConfigs, visibleViews, truthy, colorOf, tempoColor, binColor, sceneName, isTemplate, sync, watchStates, relayout, state };
+  window.dashboardHeader = { VERSION, SCENES, vehicleList, PALETTE, STRINGS, resolveConfig, resolveSubviewConfig, effectiveMode, resolvePanelConfig, energyLayout, amount, numOf, collectPanels, panelConfigs, visibleViews, truthy, colorOf, tempoColor, binColor, sceneName, isTemplate, sync, watchStates, relayout, state };
   console.info(`%c DASHBOARD-HEADER %c ${VERSION} `, "color:#fff;background:#2459bd;font-weight:700", "color:#2459bd;background:#fff");
 })();

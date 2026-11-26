@@ -62,6 +62,14 @@ export const DASHBOARDS = {
 };
 export const viewsOf = (scene) => VIEWS[scene].map((title, i) => ({ title, path: `v${i}` }));
 
+// The house dashboard with a subview of the living room's lights.
+const SUBVIEW = [
+  { title: "Home", path: "v0" },
+  { title: "Living room", path: "v1" },
+  { title: "Bedroom", path: "v2" },
+  { title: "Living room lights", path: "living-room-lights", subview: true, icon: "mdi:sofa", back_path: "/dashboard/v1" },
+];
+
 const shot = (file, theme, scene, extra = {}) => ({ file, theme, scene, width: 1280, narrow: false, scroll: 0, header: {}, ...extra });
 const twins = (file, scene, extra) => [shot(file, "light", scene, extra), shot(`${file}-dark`, "dark", scene, extra)];
 
@@ -103,6 +111,10 @@ export const shots = [
   ...twins("compact-phone", "maison", { width: 390, narrow: true, header: { mode: "compact" } }),
   ...twins("collapsed", "maison", { scroll: 200 }),
   ...twins("phone", "maison", { width: 390, narrow: true }),
+  // A subview (back button, the subview's title and icon, the dashboard's title as subtitle, no tabs): illustrated on
+  // a desktop, and with `mode: auto` on a phone (compact).
+  ...twins("subview", "maison", { views: SUBVIEW, view: 3 }),
+  ...twins("subview-phone", "maison", { views: SUBVIEW, view: 3, width: 390, narrow: true, header: { mode: "auto" } }),
 ];
 
 // One looping GIF per distinct animation:

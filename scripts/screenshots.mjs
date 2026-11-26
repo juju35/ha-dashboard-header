@@ -77,12 +77,14 @@ const ICONS = Object.fromEntries(
     "magnify",
     "comment-processing-outline",
     "dots-vertical",
+    "sofa",
+    "arrow-left",
   ].map((n) => [`mdi:${n}`, mdi[`mdi${n.replace(/(^|-)([a-z])/g, (_, __, ch) => ch.toUpperCase())}`]]),
 );
 
 // Stand-ins for Home Assistant's elements: ha-icon, ha-icon-button, ha-menu-button, and hui-root with the same
-// header structure and styles as the real one (src/panels/lovelace/hui-root.ts), its toolbar holding the sidebar
-// button, the view tabs (hidden by the header) and the action buttons.
+// header structure and styles as the real one (src/panels/lovelace/hui-root.ts), its toolbar holding the subview's
+// back arrow, the sidebar button, the view tabs (hidden by the header) and the action buttons.
 const STAND_INS = `
 const ICONS = ${JSON.stringify(ICONS)};
 const svg = (d, size) => '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '" style="display:block;fill:currentColor"><path d="' + (d || "") + '"/></svg>';
@@ -100,6 +102,7 @@ class IconButton extends HTMLElement {
 }
 customElements.define("ha-icon-button", class extends IconButton {});
 customElements.define("ha-menu-button", class extends IconButton {});
+customElements.define("ha-icon-button-arrow-prev", class extends IconButton {});
 customElements.define("hui-root", class extends HTMLElement {
   constructor() {
     super();
@@ -118,6 +121,7 @@ customElements.define("hui-root", class extends HTMLElement {
       .card { height: 140px; border-radius: 14px; background: var(--card-background-color); border: 1px solid var(--divider-color); }
     </style>
     <div class="wrap"><div class="header"><slot name="toolbar"><div class="toolbar">
+      <ha-icon-button-arrow-prev icon="mdi:arrow-left"></ha-icon-button-arrow-prev>
       <ha-menu-button icon="mdi:menu"></ha-menu-button>
       <ha-tab-group>native tabs</ha-tab-group>
       <div class="action-items">
@@ -164,16 +168,16 @@ async function openPage(browser, s) {
   const dash = DASHBOARDS[s.scene];
   const header = { ...dash.header, ...s.header, scene_state: { ...dash.header.scene_state, ...s.header.scene_state } };
   await page.evaluate(
-    ({ title, views, header, theme, narrow }) => {
+    ({ title, views, header, theme, narrow, view }) => {
       const el = document.createElement("hui-root");
       el.hass = { themes: { darkMode: theme === "dark" }, states: {}, language: "en", locale: { language: "en" }, user: { id: "u1" }, panels: {} };
       el.lovelace = { editMode: false, config: { title, views, dashboard_header: header } };
       el.route = { prefix: "/dashboard" };
-      el._curView = 0;
+      el._curView = view;
       document.body.appendChild(el);
       el.narrow = narrow;
     },
-    { title: dash.title, views: viewsOf(s.scene), header, theme: s.theme, narrow: s.narrow },
+    { title: dash.title, views: s.views || viewsOf(s.scene), header, theme: s.theme, narrow: s.narrow, view: s.view || 0 },
   );
   await page.addScriptTag({ content: bundle });
   if (s.scroll) await page.evaluate((y) => window.scrollTo(0, y), s.scroll);
