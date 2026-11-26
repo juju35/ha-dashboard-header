@@ -43,6 +43,13 @@ test("scene names: French, English aliases and accents; unknown falls back to ma
     ["system", "systeme"],
     ["outdoor", "exterieur"],
     ["devices", "equipements"],
+    ["Salle de bain", "bathroom"],
+    ["chambre-bébé", "nursery"],
+    ["wc", "toilet"],
+    ["entrance", "entrance"],
+    ["foyer", "entryway"],
+    ["hallway", "hallway"],
+    ["garden", "garden"],
     ["nope", "maison"],
   ])
     assert.equal(dh.sceneName(given), want, given);
@@ -117,7 +124,7 @@ test("templates are recognised", () => {
 });
 
 test("every scene draws a complete SVG in both themes, whatever its state", () => {
-  const states = [{}, { lights: "on", vacuum: "cleaning", appliance: "on", printer: "on", vehicles: 1, tempo: "rouge", power: "on", alert: "error", alarm: "triggered", lock: "open", camera_privacy: "on", school: "off", bin: "vert", rain: "on", lamp: "on" }];
+  const states = [{}, { lights: "on", vacuum: "cleaning", appliance: "on", printer: "on", vehicles: 1, tempo: "rouge", power: "on", alert: "error", alarm: "triggered", lock: "open", camera_privacy: "on", school: "off", bin: "vert", rain: "on", lamp: "on", light: "on", humidity: "85", fan: "on", occupied: "on", shutter: "40", sleep: "on", night_light: "on", music: "on", pc: "on", led: "cyan", door: "opening", car: "off", motion: "on", busy: "on", washer: "on", dryer: "on", doorbell: "on", mailbox: "on", parcel: "on", watering: "on", mower: "mowing" }];
   for (const [name, scene] of Object.entries(dh.SCENES)) {
     assert.match(scene.icon, /^mdi:/);
     for (const mode of ["light", "dark"]) {
