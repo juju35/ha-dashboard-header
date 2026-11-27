@@ -1,9 +1,16 @@
 # Changelog
 
-## 1.6.1 - 2026-11-27
+## 1.7.1 - 2026-11-27
 
 ### Fixes
 - The banner no longer checks the page every 1.5 s: a theme switch (applied on the page's root element), a dashboard saved, a panel added or a theme edited (Home Assistant's `lovelace_updated`, `panels_updated` and `themes_updated` events, open to every user) and coming back to the tab redraw it when they happen.
+
+## 1.7.0 - 2026-11-27
+
+### Features
+- New scenes: `pool` (outdoor: ripples while the pump runs, underwater light, heat pump fan, robot cleaner, cover rolled to its position), `game_room` (neon sign in its color, arcade cabinet, pool table under its lamp, TV and console), `living_room` (floor lamp, sofa, TV, roller shutter), `kitchen` (lights under the cabinets, hob steaming while cooking, oven lit, hood fan, dishwasher programme) and `dining_room` (pendant lamp and candle, roller shutter). French names work too: `piscine`, `salle_de_jeux`, `salon`, `cuisine`, `salle_a_manger`.
+- Seven more: `cellar` (wine racks, water heater, humidity drops, leak sensor), `attic` (roof window and its shutter), `guest_room` (a suitcase when a guest stays), `home_cinema` (projector beam, film on the screen, sound waves), `gym` (treadmill belt, standing fan), `workshop` (3D printer at work, table saw) and `veranda` (roof blinds, ceiling fan, hanging lights) — also `cave`, `grenier`, `chambre_d_amis`, `cinema`, `salle_de_sport`, `atelier`.
+- Scene names may contain an apostrophe (`chambre d'amis`).
 
 ## 1.6.0 - 2026-11-26
 
