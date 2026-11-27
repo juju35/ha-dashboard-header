@@ -1634,7 +1634,7 @@
   if (!customElements.get(TAG)) customElements.define(TAG, DashboardHeaderBanner);
 
   // ---- Wiring: follow the current dashboard, its view, edit mode and scrolling ----
-  const state = { root: null, banner: null, observer: null, unsubEvents: null, conn: null, watchKey: null, queued: false, lovelaceConfig: null };
+  const state = { root: null, banner: null, observer: null, unsubEvents: null, conn: null, watchKey: null, queued: false, lovelaceConfig: null, busConn: null };
 
   // In an app panel the banner sits above the app's frame: the panel's own small header is hidden (the banner draws its
   // sidebar button) and the frame keeps the rest of the height.
@@ -1749,10 +1749,26 @@
     watchStates(banner);
   };
 
+  // Changes that come with no DOM change of the panel: a dashboard saved (its `dashboard_header:` or another
+  // dashboard's `panels:` list), a theme edited, a panel added or removed. Home Assistant announces them on its bus;
+  // these three events are open to every user (not only administrators). Subscribed once per connection.
+  const watchBus = (hass) => {
+    const conn = hass?.connection;
+    if (!conn?.subscribeEvents || conn === state.busConn) return;
+    state.busConn = conn;
+    const again = () => {
+      resetPanels();
+      state.lovelaceConfig = null;
+      queue();
+    };
+    for (const type of ["lovelace_updated", "panels_updated", "themes_updated"]) conn.subscribeEvents(again, type).catch(() => {});
+  };
+
   const sync = () => {
     state.queued = false;
     const lovelace = findRoot();
     const root = lovelace || findApp();
+    watchBus(root?.hass);
     if (state.root && state.root !== root) deactivate(state.root);
     if (root !== state.root) {
       state.observer?.disconnect();
@@ -1832,12 +1848,17 @@
     },
     { passive: true },
   );
-  // Theme switches (dark mode) and dashboard edits arrive with a new hass / lovelace without any DOM change.
-  setInterval(() => {
+  // A theme switch (dark mode, another theme picked in the profile) is applied by Home Assistant on <html> (its
+  // variables and classes): drawn again then. The rest comes from the bus (watchBus) and the panel's own DOM.
+  if (typeof MutationObserver === "function" && document.documentElement) {
+    new MutationObserver(() => queue()).observe(document.documentElement, { attributes: true, attributeFilter: ["style", "class"] });
+  }
+  // Back on a tab left in the background: what changed meanwhile is drawn at once.
+  document.addEventListener?.("visibilitychange", () => {
     if (document.visibilityState === "visible") queue();
-  }, 1500);
+  });
   queue();
 
-  window.dashboardHeader = { VERSION, SCENES, vehicleList, PALETTE, STRINGS, resolveConfig, resolveSubviewConfig, effectiveMode, resolvePanelConfig, energyLayout, amount, numOf, collectPanels, panelConfigs, visibleViews, truthy, colorOf, tempoColor, binColor, sceneName, isTemplate, sync, watchStates, relayout, state };
+  window.dashboardHeader = { VERSION, SCENES, vehicleList, PALETTE, STRINGS, resolveConfig, resolveSubviewConfig, effectiveMode, resolvePanelConfig, energyLayout, amount, numOf, collectPanels, panelConfigs, visibleViews, truthy, colorOf, tempoColor, binColor, sceneName, isTemplate, sync, watchStates, watchBus, relayout, state };
   console.info(`%c DASHBOARD-HEADER %c ${VERSION} `, "color:#fff;background:#2459bd;font-weight:700", "color:#2459bd;background:#fff");
 })();
