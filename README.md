@@ -10,7 +10,7 @@
 
 <p align="center"><img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/images/icon.svg" alt="Dashboard Header" width="120"></p>
 
-**Illustrated headers for your Home Assistant dashboards**, in the style of the ha-* cards: each dashboard gets a 90 px scene (a house, devices, cars, energy, a server rack, security, family, a terrace, a garden, a pool, the entrance and every room of the house) that follows the state of your home, with its title, a live subtitle, a status pill and calm text tabs — or a compact bar with pill tabs. Light and dark, with day and night scenes.
+**Illustrated headers for your Home Assistant dashboards**, in the style of the ha-* cards: each dashboard gets a 90 px scene (a house, devices, cars, energy, a server rack, security, family, a terrace, a garden, a pool, a veranda, the entrance and every room of the house) that follows the state of your home, with its title, a live subtitle, a status pill and calm text tabs — or a compact bar with pill tabs. Light and dark, with day and night scenes.
 
 | Light | Dark |
 |---|---|
@@ -19,7 +19,7 @@
 ## Features
 
 - **Twenty-one scenes**, one per kind of dashboard: `maison`, `equipements`, `voitures`, `energie`, `systeme`, `securite`, `famille`, `exterieur` (English names work too: `home`, `devices`, `cars`, `energy`, `system`, `security`, `family`, `outdoor`).
-- **Rooms, entrances, garden and pool**: `living_room`, `kitchen`, `dining_room`, `bathroom`, `toilet`, `bedroom`, `nursery`, `kids_room`, `teen_room`, `garage`, `hallway`, `office`, `laundry`, `game_room`, `entrance` (outside), `entryway` (inside), `garden`, `pool` (their French names work too: `salon`, `cuisine`, `salle_a_manger`, `salle_de_bain`, `toilettes`, `chambre_parents`, `chambre_bebe`, `chambre_enfant`, `chambre_ado`, `couloir`, `bureau`, `buanderie`, `salle_de_jeux`, `entree`, `entree_interieure`, `jardin`, `piscine`; spaces and accents are fine: `Salle de bain`, `chambre bébé`).
+- **Rooms, entrances, garden, pool and veranda**: `living_room`, `kitchen`, `dining_room`, `bathroom`, `toilet`, `bedroom`, `nursery`, `kids_room`, `teen_room`, `garage`, `hallway`, `office`, `laundry`, `game_room`, `guest_room`, `home_cinema`, `gym`, `workshop`, `cellar`, `attic`, `entrance` (outside), `entryway` (inside), `garden`, `pool`, `veranda` (their French names work too: `salon`, `cuisine`, `salle_a_manger`, `chambre_d_amis`, `cinema`, `salle_de_sport`, `atelier`, `cave`, `grenier`, `salle_de_bain`, `toilettes`, `chambre_parents`, `chambre_bebe`, `chambre_enfant`, `chambre_ado`, `couloir`, `bureau`, `buanderie`, `salle_de_jeux`, `entree`, `entree_interieure`, `jardin`, `piscine`, `veranda`; spaces and accents are fine: `Salle de bain`, `chambre bébé`).
 - **The scene follows your home**: lit windows when the lights are on, the robot vacuum leaving its dock, the meter showing today's Tempo color, a blinking LED on the server rack, the alarm shield turning red, rain on the terrace… (`scene_state`, any entity or template).
 - **Live title, subtitle and status pill** from entities or templates, rendered by Home Assistant.
 - **Two modes**: `illustrated` (band + text tabs) or `compact` (one bar, pill tabs) — or `auto`: illustrated on a computer, compact on a phone. The illustrated header **folds to the compact bar when you scroll**, and unfolds at the top.
@@ -113,7 +113,7 @@ views:
 
 | Option | Default | Description |
 |---|---|---|
-| `scene` | `maison` | The illustration: `maison`, `equipements`, `voitures`, `energie`, `systeme`, `securite`, `famille`, `exterieur`, a room (`living_room`, `kitchen`, `dining_room`, `bathroom`, `toilet`, `bedroom`, `nursery`, `kids_room`, `teen_room`, `garage`, `hallway`, `office`, `laundry`, `game_room`), `entrance`, `entryway`, `garden`, `pool`, or `none` (band without a picture). English and French aliases accepted. |
+| `scene` | `maison` | The illustration: `maison`, `equipements`, `voitures`, `energie`, `systeme`, `securite`, `famille`, `exterieur`, a room (`living_room`, `kitchen`, `dining_room`, `bathroom`, `toilet`, `bedroom`, `nursery`, `kids_room`, `teen_room`, `garage`, `hallway`, `office`, `laundry`, `game_room`, `guest_room`, `home_cinema`, `gym`, `workshop`, `cellar`, `attic`), `entrance`, `entryway`, `garden`, `pool`, `veranda`, or `none` (band without a picture). English and French aliases accepted. |
 | `mode` | `illustrated` | `illustrated` (90 px band and text tabs), `compact` (64 px bar, pill tabs) or `auto` (compact where Home Assistant lays the page out for a phone, illustrated elsewhere; follows rotation and resizing). |
 | `compact_below` | — | With `mode: auto`: switch to compact under this window width, in px (e.g. `600`), instead of Home Assistant's phone layout. |
 | `collapse_on_scroll` | `true` | Illustrated mode: fold to the compact bar once the page scrolls, unfold at the top. |
@@ -301,6 +301,28 @@ The `panels:` lists are read when the panel opens (see [App panels](#app-panels-
 | | `dishwasher` | A programme bar runs on the dishwasher. |
 | `dining_room` | `lights` | The pendant lamp and the candle are lit. |
 | | `shutter` | The window's roller shutter. |
+| `cellar` | `lights` | The bare bulb is lit. |
+| | `humidity` | Drops bead on the walls from 70 % (or when on). |
+| | `water_heater` | Heat rises over the water heater and its LED is amber. |
+| | `leak` | A puddle on the floor, the leak sensor blinks red. |
+| `attic` | `lights` | The bulb under the roof is lit. |
+| | `skylight` | The roof window's shutter, down to its closed share. |
+| `guest_room` | `lights` | The bedside lamp is lit. |
+| | `shutter` | The window's roller shutter. |
+| | `occupied` | A suitcase beside the bed when a guest is staying. |
+| | `sleep` | "zZ" rise over the bed. |
+| `home_cinema` | `projector` | A film on the screen and the projector's beam. |
+| | `lights` | The wall sconces are lit. |
+| | `sound` | Sound waves come out of the speaker. |
+| `gym` | `treadmill` | The treadmill's belt runs and its screen lights up. |
+| | `fan` | The standing fan turns. |
+| | `lights` | The ceiling lights are on. |
+| `workshop` | `lights` | The shop lamp is on. |
+| | `printer` | The 3D printer's head moves and the part grows. |
+| | `saw` | The table saw's blade turns. |
+| `veranda` | `blinds` | The roof blinds drawn to their closed share (`open`, `closed`, or a cover position, 100 = open). |
+| | `lights` | The hanging lights are lit. |
+| | `fan` | The ceiling fan turns. |
 
 "On" means `on`, `true`, `open`, `home`, `cleaning`, `running`, `armed_*`, a number above 0…
 
@@ -335,6 +357,13 @@ The `panels:` lists are read when the panel opens (see [App panels](#app-panels-
 | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-living_room.png" alt="Living room scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-living_room-dark.png" alt="Living room scene, dark" width="420"> |
 | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-kitchen.png" alt="Kitchen scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-kitchen-dark.png" alt="Kitchen scene, dark" width="420"> |
 | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-dining_room.png" alt="Dining room scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-dining_room-dark.png" alt="Dining room scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-cellar.png" alt="Cellar scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-cellar-dark.png" alt="Cellar scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-attic.png" alt="Attic scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-attic-dark.png" alt="Attic scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-guest_room.png" alt="Guest room scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-guest_room-dark.png" alt="Guest room scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-home_cinema.png" alt="Home cinema scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-home_cinema-dark.png" alt="Home cinema scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-gym.png" alt="Gym scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-gym-dark.png" alt="Gym scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-workshop.png" alt="Workshop scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-workshop-dark.png" alt="Workshop scene, dark" width="420"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-veranda.png" alt="Veranda scene" width="420"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/scene-veranda-dark.png" alt="Veranda scene, dark" width="420"> |
 
 ### Cars: driveway and station layouts
 
@@ -407,6 +436,12 @@ Each animated state of the scenes (still when the system asks for reduced motion
 | Game room: arcade and TV on | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/game-room-playing.gif" alt="Game room: arcade and TV on" width="380"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/game-room-playing-dark.gif" alt="Game room: arcade and TV on, dark" width="380"> |
 | Living room: TV on | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/living-room-tv.gif" alt="Living room: TV on" width="380"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/living-room-tv-dark.gif" alt="Living room: TV on, dark" width="380"> |
 | Kitchen: cooking, oven, hood and dishwasher | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/kitchen-cooking.gif" alt="Kitchen: cooking, oven, hood and dishwasher" width="380"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/kitchen-cooking-dark.gif" alt="Kitchen: cooking, oven, hood and dishwasher, dark" width="380"> |
+| Cellar: leak, humidity, water heater | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/cellar-leak.gif" alt="Cellar: leak, humidity, water heater" width="380"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/cellar-leak-dark.gif" alt="Cellar: leak, humidity, water heater, dark" width="380"> |
+| Guest room: guest asleep | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/guest-room-staying.gif" alt="Guest room: guest asleep" width="380"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/guest-room-staying-dark.gif" alt="Guest room: guest asleep, dark" width="380"> |
+| Home cinema: projector and sound on | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/home-cinema-playing.gif" alt="Home cinema: projector and sound on" width="380"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/home-cinema-playing-dark.gif" alt="Home cinema: projector and sound on, dark" width="380"> |
+| Gym: treadmill and fan on | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/gym-running.gif" alt="Gym: treadmill and fan on" width="380"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/gym-running-dark.gif" alt="Gym: treadmill and fan on, dark" width="380"> |
+| Workshop: 3D printing, saw on | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/workshop-busy.gif" alt="Workshop: 3D printing, saw on" width="380"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/workshop-busy-dark.gif" alt="Workshop: 3D printing, saw on, dark" width="380"> |
+| Veranda: blinds closed, fan on | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/veranda-fan.gif" alt="Veranda: blinds closed, fan on" width="380"> | <img src="https://raw.githubusercontent.com/juju35/ha-dashboard-header/main/screenshots/veranda-fan-dark.gif" alt="Veranda: blinds closed, fan on, dark" width="380"> |
 
 ## How it works
 

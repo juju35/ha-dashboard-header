@@ -426,9 +426,11 @@
   // Soft per-mode colors of the room scenes (duvets, toys, towels).
   const ROOM = {
     light: { duvet: "#b9c4ec", baby: "#f5c9d3", babyWall: "#f6eef0", kid: "#f2c94c", kid2: "#e86f5c", kid3: "#5b9bd5", teen: "#6b5bd6", towel: "#5fb8c9", tile: "#d8e4ea", bath: "#ffffff",
-      water: "#7ccfe4", glow: "#c4f4ff", cover: "#8fa3b8", felt: "#2f8a58", sofa: "#8fa6c9" },
+      water: "#7ccfe4", glow: "#c4f4ff", cover: "#8fa3b8", felt: "#2f8a58", sofa: "#8fa6c9",
+      stone: "#c9ccd2", wine: "#8a2b3a", guest: "#c9dccb", seat: "#7a2e3e", curtain: "#9a3346" },
     dark: { duvet: "#3b4470", baby: "#6a4652", babyWall: "#2a2529", kid: "#9a7f2a", kid2: "#8a4337", kid3: "#2f5a82", teen: "#4a3fa0", towel: "#2d6e7a", tile: "#2a333b", bath: "#c9d0db",
-      water: "#1f5f73", glow: "#3fb6d4", cover: "#3a4658", felt: "#1d5a3a", sofa: "#3f4d6a" },
+      water: "#1f5f73", glow: "#3fb6d4", cover: "#3a4658", felt: "#1d5a3a", sofa: "#3f4d6a",
+      stone: "#323843", wine: "#5e1f2a", guest: "#34483a", seat: "#4e1f2a", curtain: "#5a1f2b" },
   };
 
   const SCENES = {
@@ -1306,6 +1308,243 @@
         );
       },
     },
+    cellar: {
+      icon: "mdi:bottle-wine",
+      accent: "red",
+      bg: "wall2",
+      keys: ["lights", "humidity", "water_heater", "leak"],
+      // Stone walls under a vault, a bare bulb, wine racks, the water heater (heat rising while it heats), drops on
+      // the wall when the air is humid, a puddle and a blinking sensor on a leak.
+      draw: (c, st, p, mode) => {
+        const r = ROOM[mode];
+        const on = truthy(st.lights);
+        const heat = truthy(st.water_heater);
+        const leak = truthy(st.leak);
+        let stones = "";
+        for (let row = 0; row < 4; row++)
+          for (let x = 960 + (row % 2) * 14; x < 1600; x += 28) stones += `<rect x="${x}" y="${14 + row * 14}" width="26" height="12" rx="3" fill="${r.stone}" opacity="0.55"/>`;
+        let rack = "";
+        for (let row = 0; row < 4; row++)
+          for (let col = 0; col < 6; col++) rack += `<circle cx="${1036 + col * 10}" cy="${36 + row * 10}" r="3.6" fill="${(row + col) % 3 ? r.wine : c.rack}" stroke="${c.wood}" stroke-width="0.8"/>`;
+        return (
+          floorStrip(c, c.floor2) +
+          stones +
+          `<path d="M960 10 Q1280 -26 1600 10" fill="none" stroke="${c.line}" stroke-width="2" opacity="0.6"/>` +
+          `<path d="M1100 0 V18" stroke="${c.line}" stroke-width="1"/>` +
+          (on ? `<circle cx="1100" cy="24" r="22" fill="${c.lampOn}" opacity="0.22"/>` : "") +
+          `<circle cx="1100" cy="23" r="5" fill="${on ? c.lampOn : c.lamp}"/>` +
+          `<rect x="1028" y="28" width="64" height="44" rx="2" fill="${c.wood}"/>${rack}` +
+          `<rect x="1028" y="72" width="64" height="6" fill="${c.wood}"/>` +
+          (humid(st.humidity) ? `<g class="pulse" fill="${p.cyan}" opacity="0.8"><path d="M990 30 q-3 5 0 7 q3 -2 0 -7z"/><path d="M1006 46 q-3 5 0 7 q3 -2 0 -7z"/><path d="M1126 34 q-3 5 0 7 q3 -2 0 -7z"/></g>` : "") +
+          (heat ? `<g class="steam" fill="none" stroke="${p.amber}" stroke-width="2" stroke-linecap="round" opacity="0.7"><path d="M1196 16 q-4 -5 0 -10"/><path d="M1206 14 q-4 -5 0 -10"/><path d="M1216 16 q-4 -5 0 -10"/></g>` : "") +
+          `<rect x="1186" y="20" width="40" height="56" rx="18" fill="${c.appl}" stroke="${c.line}"/><rect x="1198" y="40" width="16" height="8" rx="2" fill="${c.rack}"/>` +
+          `<circle cx="1206" cy="44" r="2" fill="${heat ? p.amber : c.line}"/><path d="M1196 76 V82 M1216 76 V82" stroke="${c.line}" stroke-width="2.4"/>` +
+          `<path d="M1206 20 V8 H1240" fill="none" stroke="${c.line}" stroke-width="2"/>` +
+          (leak ? `<ellipse cx="1260" cy="80" rx="26" ry="3" fill="${p.blue}" opacity="0.55"/>` : "") +
+          `<rect x="1252" y="74" width="12" height="6" rx="2" fill="${c.appl}" stroke="${c.line}" stroke-width="0.8"/><circle class="${leak ? "blink" : ""}" cx="1258" cy="77" r="1.6" fill="${leak ? p.red : p.green}"/>` +
+          `<rect x="1280" y="58" width="22" height="20" rx="1" fill="${c.wood}" opacity="0.8"/><path d="M1280 66 H1302" stroke="${c.wall2}" stroke-width="1"/>` +
+          ground(c.floorBar)
+        );
+      },
+    },
+    attic: {
+      icon: "mdi:home-roof",
+      accent: "amber",
+      bg: "wall",
+      keys: ["lights", "skylight"],
+      // Under the sloping roof: its beams, a roof window with its shutter, a bare bulb, boxes, a trunk and a rocking
+      // horse.
+      draw: (c, st, p, mode) => {
+        const on = truthy(st.lights);
+        const night = mode === "dark";
+        const shut = closedShare(st.skylight);
+        const sh = Math.round(24 * shut);
+        return (
+          floorStrip(c, c.wood) +
+          `<polygon points="0,0 1110,0 960,72 0,72" fill="${c.roof}" opacity="0.55"/><polygon points="1170,0 1600,0 1600,72 1320,72" fill="${c.roof}" opacity="0.55"/>` +
+          `<path d="M1110 0 L960 72 M1170 0 L1320 72" stroke="${c.wood}" stroke-width="4"/>` +
+          `<path d="M1060 24 L1010 48 M1220 24 L1270 48" stroke="${c.wood}" stroke-width="2.4" opacity="0.8"/>` +
+          `<polygon points="1236,22 1262,34 1262,62 1236,50" fill="${c.wood}"/>` +
+          `<polygon points="1239,26 1259,36 1259,58 1239,48" fill="${night ? "#16223a" : "#bcdcf5"}"/>` +
+          (night ? `<circle cx="1250" cy="38" r="2.4" fill="#f3eed2"/>` : `<circle cx="1250" cy="38" r="3" fill="#ffd65a"/>`) +
+          (sh > 0 ? `<polygon points="1239,26 1259,36 1259,${36 + sh} 1239,${26 + sh}" fill="${c.floor2}"/>` : "") +
+          `<path d="M1140 0 V20" stroke="${c.line}" stroke-width="1"/>` +
+          (on ? `<path d="M1132 26 L1100 76 H1180 L1148 26Z" fill="${c.lampOn}" opacity="0.16"/>` : "") +
+          `<circle cx="1140" cy="25" r="5" fill="${on ? c.lampOn : c.lamp}"/>` +
+          `<rect x="1000" y="56" width="30" height="22" fill="${c.clay}" opacity="0.8"/><rect x="1012" y="40" width="24" height="16" fill="${c.clay}"/><path d="M1000 62 H1030 M1012 46 H1036" stroke="${c.wood}" stroke-width="1.2"/>` +
+          `<rect x="1060" y="58" width="46" height="20" rx="3" fill="${c.wood}"/><path d="M1060 54 Q1083 46 1106 54 V60 H1060Z" fill="${c.wood}"/><path d="M1060 64 H1106" stroke="${p.amber}" stroke-width="1.4"/><rect x="1080" y="60" width="6" height="7" rx="1" fill="${p.amber}"/>` +
+          `<path d="M1176 80 Q1200 72 1224 80" fill="none" stroke="${c.wood}" stroke-width="3"/><path d="M1186 76 L1190 62 M1214 76 L1210 62" stroke="${c.wood}" stroke-width="2.4"/>` +
+          `<path d="M1186 62 H1214 Q1220 62 1222 54 L1226 46 Q1220 44 1216 50 L1212 56 H1190Z" fill="${p.red}" opacity="0.75"/><circle cx="1222" cy="48" r="1.2" fill="${c.rack}"/>` +
+          ground(c.wood)
+        );
+      },
+    },
+    guest_room: {
+      icon: "mdi:bed-queen",
+      accent: "blue",
+      bg: "wall",
+      keys: ["lights", "shutter", "occupied", "sleep"],
+      // The window and its shutter, a wardrobe, a made bed with a folded towel (a suitcase beside it when a guest is
+      // staying), a bedside lamp.
+      draw: (c, st, p, mode) => {
+        const r = ROOM[mode];
+        const guest = truthy(st.occupied);
+        return (
+          floorStrip(c) +
+          roomWindow(c, mode, 960, 20, 40, 40, closedShare(st.shutter)) +
+          `<rect x="1018" y="12" width="44" height="66" rx="2" fill="${c.wood}"/><path d="M1040 12 V78" stroke="${c.wall}" stroke-width="1"/><path d="M1036 42 V50 M1044 42 V50" stroke="${c.line}" stroke-width="1.6"/>` +
+          `<rect x="1080" y="58" width="24" height="18" rx="2" fill="${c.wood}"/>` +
+          tableLamp(c, 1092, 56, truthy(st.lights)) +
+          frame(c, 1150, 20, 40, 24, mode === "dark" ? "#2b3a4f" : "#d7e6f4") +
+          `<path d="M1154 40 Q1170 26 1186 40Z" fill="${p.blue}" opacity="0.5"/>` +
+          bed(c, 1110, 140, r.guest, { pillows: 2 }) +
+          `<rect x="1200" y="50" width="22" height="5" rx="2" fill="${r.towel}"/>` +
+          (guest
+            ? `<rect x="1262" y="48" width="30" height="28" rx="4" fill="${p.red}" opacity="0.85"/><path d="M1270 48 V42 H1284 V48" fill="none" stroke="${c.line}" stroke-width="2"/><path d="M1262 58 H1292" stroke="${c.white}" stroke-width="1.2" opacity="0.6"/><circle cx="1268" cy="78" r="1.8" fill="${c.line}"/><circle cx="1286" cy="78" r="1.8" fill="${c.line}"/>`
+            : plant(c, 1278, 78)) +
+          (truthy(st.sleep) ? sleepZ(1150, 46, p.blue) : "") +
+          ground(c.wood)
+        );
+      },
+    },
+    home_cinema: {
+      icon: "mdi:projector-screen",
+      accent: "violet",
+      bg: "wall2",
+      keys: ["projector", "lights", "sound"],
+      // Curtains around the screen (a film on it and the projector's beam when on), wall sconces, speakers sending out
+      // sound waves, a row of seats.
+      draw: (c, st, p, mode) => {
+        const r = ROOM[mode];
+        const proj = truthy(st.projector);
+        const on = truthy(st.lights);
+        const sound = truthy(st.sound);
+        const sconce = (x) => (on ? `<circle cx="${x}" cy="30" r="12" fill="${c.lampOn}" opacity="0.25"/>` : "") + `<path d="M${x - 5} 34 L${x - 3} 26 H${x + 3} L${x + 5} 34Z" fill="${on ? c.lampOn : c.lamp}"/>`;
+        const seat = (x) =>
+          `<path d="M${x} 56 Q${x} 50 ${x + 6} 50 H${x + 20} Q${x + 26} 50 ${x + 26} 56 V70 H${x}Z" fill="${r.seat}"/><rect x="${x - 3}" y="64" width="32" height="10" rx="3" fill="${r.seat}"/><rect x="${x + 2}" y="74" width="4" height="4" fill="${c.rack}"/><rect x="${x + 20}" y="74" width="4" height="4" fill="${c.rack}"/>`;
+        return (
+          floorStrip(c, c.floor2) +
+          `<path d="M1040 4 H1250" stroke="${c.line}" stroke-width="2"/>` +
+          `<path d="M1040 4 Q1052 40 1044 72 H1066 V4Z" fill="${r.curtain}"/><path d="M1250 4 Q1238 40 1246 72 H1224 V4Z" fill="${r.curtain}"/>` +
+          `<rect x="1068" y="10" width="154" height="44" fill="${proj ? (mode === "dark" ? "#1d3550" : "#e9f2fb") : c.unit}"/>` +
+          (proj ? `<g class="pulse"><path d="M1068 54 L1110 30 L1140 42 L1180 22 L1222 40 V54Z" fill="${p.blue}" opacity="0.35"/><circle cx="1196" cy="22" r="5" fill="${p.amber}" opacity="0.8"/></g>` : "") +
+          `<rect x="1066" y="8" width="158" height="3" fill="${c.rack}"/>` +
+          (proj ? `<path d="M1145 54 L1300 6 V14Z" fill="${c.lampOn}" opacity="0.14"/>` : "") +
+          `<rect x="1296" y="4" width="18" height="10" rx="2" fill="${c.rack}"/><circle cx="1298" cy="9" r="2.4" fill="${proj ? c.lampOn : c.line}"/>` +
+          sconce(990) +
+          sconce(1290) +
+          `<rect x="1010" y="40" width="16" height="32" rx="2" fill="${c.rack}"/><circle cx="1018" cy="50" r="4" fill="${c.unit}"/><circle cx="1018" cy="63" r="5" fill="${c.unit}"/>` +
+          (sound ? `<g class="pulse" fill="none" stroke="${p.violet}" stroke-width="1.4" stroke-linecap="round"><path d="M1030 56 a8 8 0 0 1 0 12"/><path d="M1034 52 a14 14 0 0 1 0 20"/></g>` : "") +
+          seat(1096) +
+          seat(1134) +
+          seat(1172) +
+          ground(c.floorBar)
+        );
+      },
+    },
+    gym: {
+      icon: "mdi:dumbbell",
+      accent: "green",
+      bg: "wall2",
+      keys: ["treadmill", "fan", "lights"],
+      // A wall mirror, a dumbbell rack, a weight bench, the treadmill (its belt running when on) and a standing fan.
+      draw: (c, st, p, mode) => {
+        const run = truthy(st.treadmill);
+        const fan = truthy(st.fan);
+        const dumbbell = (x, y, w, color) => `<rect x="${x}" y="${y - 1}" width="${w}" height="2" fill="${c.line}"/><rect x="${x - 3}" y="${y - 4}" width="5" height="8" rx="1.5" fill="${color}"/><rect x="${x + w - 2}" y="${y - 4}" width="5" height="8" rx="1.5" fill="${color}"/>`;
+        return (
+          floorStrip(c, c.floor2) +
+          `<rect x="0" y="72" width="1600" height="14" fill="${mode === "dark" ? "#22272e" : "#b8bfc8"}" opacity="0.5"/>` +
+          ceilingLamp(c, 1060, truthy(st.lights), 4) +
+          ceilingLamp(c, 1200, truthy(st.lights), 4) +
+          `<rect x="966" y="14" width="56" height="44" rx="2" fill="${c.glassWin}" stroke="${c.line}"/><path d="M976 24 l12 -8 M976 36 l22 -18" stroke="#ffffff" stroke-width="1.4" opacity="0.6"/>` +
+          `<path d="M970 62 H1018 M970 72 H1018 M974 62 V78 M1014 62 V78" stroke="${c.rack}" stroke-width="2.4"/>` +
+          dumbbell(976, 59, 12, p.red) +
+          dumbbell(998, 59, 12, p.blue) +
+          dumbbell(976, 69, 12, p.amber) +
+          dumbbell(998, 69, 12, p.green) +
+          `<rect x="1040" y="60" width="60" height="6" rx="3" fill="${c.rack}"/><path d="M1050 66 V78 M1090 66 V78" stroke="${c.line}" stroke-width="3"/>` +
+          `<path d="M1094 60 V36 M1080 36 H1108" stroke="${c.line}" stroke-width="2.4"/><rect x="1074" y="32" width="6" height="10" rx="1.5" fill="${c.rack}"/><rect x="1108" y="32" width="6" height="10" rx="1.5" fill="${c.rack}"/>` +
+          `<path d="M1140 74 L1240 70 Q1246 70 1246 76 Q1246 80 1240 80 H1140Z" fill="${c.rack}"/>` +
+          `<path class="${run ? "flow" : ""}" d="M1144 73 L1238 69.5" fill="none" stroke="${run ? p.green : c.unit}" stroke-width="2"/>` +
+          `<path d="M1236 70 L1226 30" stroke="${c.line}" stroke-width="3"/><rect x="1214" y="24" width="24" height="10" rx="2" fill="${c.rack}"/>` +
+          `<rect x="1218" y="26" width="16" height="6" rx="1" fill="${run ? (mode === "dark" ? "#18344a" : "#cfe9f5") : c.unit}"/>` +
+          (run ? `<path class="blink" d="M1220 29 H1232" stroke="${p.green}" stroke-width="1.4"/>` : "") +
+          `<path d="M1286 48 V78 M1276 78 H1296" stroke="${c.line}" stroke-width="2.4"/>` +
+          `<circle cx="1286" cy="38" r="12" fill="${c.appl}" stroke="${c.line}" stroke-width="1.4"/>` +
+          `<g class="${fan ? "spin" : ""}"><path d="M1286 38 L1286 28 A10 10 0 0 1 1294 33Z M1286 38 L1296 40 A10 10 0 0 1 1290 47Z M1286 38 L1280 46 A10 10 0 0 1 1276 37Z" fill="${p.cyan}" opacity="0.8"/></g>` +
+          ground(c.floorBar)
+        );
+      },
+    },
+    workshop: {
+      icon: "mdi:hammer-wrench",
+      accent: "amber",
+      bg: "wall2",
+      keys: ["lights", "printer", "saw"],
+      // A pegboard of tools, the workbench and its vise, a 3D printer (head moving and a part growing while it prints)
+      // and a table saw (blade turning when on), a shop lamp.
+      draw: (c, st, p, mode) => {
+        const printing = truthy(st.printer);
+        const saw = truthy(st.saw);
+        let holes = "";
+        for (let x = 974; x < 1074; x += 8) for (let y = 16; y < 52; y += 8) holes += `<circle cx="${x}" cy="${y}" r="0.8" fill="${c.line}" opacity="0.6"/>`;
+        return (
+          floorStrip(c, c.asphalt) +
+          ceilingLamp(c, 1130, truthy(st.lights), 4) +
+          `<rect x="968" y="10" width="110" height="46" rx="2" fill="${c.wood}" opacity="0.55"/>${holes}` +
+          `<path d="M984 18 V40 M980 18 H988" stroke="${c.line}" stroke-width="2.4"/><path d="M1000 16 V42" stroke="${c.line}" stroke-width="2.6"/><path d="M996 16 H1004 V22 H996Z" fill="${c.line}"/>` +
+          `<path d="M1018 18 L1024 42 M1030 18 L1024 42" stroke="${c.line}" stroke-width="2"/><circle cx="1044" cy="26" r="6" fill="none" stroke="${c.line}" stroke-width="2"/><path d="M1060 18 V40" stroke="${p.red}" stroke-width="4"/><path d="M1060 40 V46" stroke="${c.line}" stroke-width="1.4"/>` +
+          `<rect x="964" y="58" width="120" height="5" rx="1" fill="${c.wood}"/><path d="M968 63 V78 M1080 63 V78" stroke="${c.wood}" stroke-width="3"/><rect x="972" y="70" width="104" height="3" fill="${c.wood}" opacity="0.6"/>` +
+          `<rect x="1060" y="50" width="16" height="8" rx="1" fill="${p.blue}" opacity="0.8"/><path d="M1068 58 V62" stroke="${c.line}" stroke-width="2"/>` +
+          `<rect x="1000" y="52" width="26" height="6" rx="1" fill="${c.clay}"/>` +
+          `<rect x="1150" y="24" width="50" height="40" rx="2" fill="none" stroke="${c.rack}" stroke-width="3"/><rect x="1148" y="62" width="54" height="16" rx="2" fill="${c.rack}"/>` +
+          `<rect x="1156" y="66" width="14" height="6" rx="1" fill="${printing ? (mode === "dark" ? "#18344a" : "#cfe9f5") : c.unit}"/>` +
+          `<rect x="1162" y="${printing ? 52 : 58}" width="20" height="${printing ? 8 : 2}" rx="1" fill="${p.amber}" opacity="0.85"/>` +
+          `<path d="M1152 46 H1198" stroke="${c.line}" stroke-width="1.6"/>` +
+          `<g class="${printing ? "sweep" : ""}"><rect x="1160" y="42" width="10" height="8" rx="1" fill="${c.appl}" stroke="${c.line}" stroke-width="0.8"/><path d="M1165 50 V52" stroke="${p.amber}" stroke-width="1.4"/></g>` +
+          `<rect x="1226" y="58" width="80" height="6" rx="1" fill="${c.appl}" stroke="${c.line}"/><path d="M1232 64 L1236 78 M1300 64 L1296 78" stroke="${c.line}" stroke-width="2.6"/>` +
+          `<g class="${saw ? "spin" : ""}"><circle cx="1266" cy="58" r="8" fill="${c.white}" stroke="${c.line}" stroke-width="0.8"/><path d="M1266 50 l2 3 M1274 58 l-3 2 M1266 66 l-2 -3 M1258 58 l3 -2" stroke="${c.line}" stroke-width="1.6"/></g>` +
+          `<rect x="1226" y="58" width="80" height="2" fill="${c.line}"/><rect x="1284" y="66" width="8" height="6" rx="1" fill="${saw ? p.red : c.line}"/>` +
+          ground(c.road)
+        );
+      },
+    },
+    veranda: {
+      icon: "mdi:greenhouse",
+      accent: "green",
+      bg: "sky",
+      keys: ["blinds", "lights", "fan"],
+      // The glass structure of the veranda against the house, its roof blinds drawn to their closed share, a ceiling
+      // fan, hanging lights, an armchair and potted plants.
+      draw: (c, st, p, mode, _hass, _val, narrow) => {
+        const on = truthy(st.lights);
+        const fan = truthy(st.fan);
+        const shut = closedShare(st.blinds);
+        const blindW = Math.round(220 * shut);
+        // The roof's slope, from 30 at the veranda's front to 14 against the house.
+        const roofY = (x) => Math.round((30 - (16 * (x - 1060)) / 230) * 10) / 10;
+        return (
+          stars(c, [[680, 16, 1.2], [820, 30, 1], [940, 12, 1.3]]) +
+          sun(c, narrow, 880, 24, 12) +
+          hills(c, "M0 74 Q250 62 500 70 T1000 66 T1400 70 V90 H0z") +
+          `<rect x="1290" y="10" width="40" height="76" fill="${c.house}"/><rect x="1300" y="40" width="20" height="46" fill="${c.door}"/>` +
+          `<polygon points="1060,30 1290,14 1290,86 1060,86" fill="${mode === "dark" ? "#24324a" : "#e7f1fa"}" opacity="0.65"/>` +
+          (blindW > 0 ? `<polygon points="${1290 - blindW},${roofY(1290 - blindW)} 1290,14 1290,21 ${1290 - blindW},${roofY(1290 - blindW) + 7}" fill="${c.wood}" opacity="0.85"/>` : "") +
+          `<path d="M1060 30 L1290 14 M1060 30 V86 M1117 26 V86 M1175 22 V86 M1232 18 V86 M1060 56 H1290" fill="none" stroke="${c.appl}" stroke-width="3"/>` +
+          `<path d="M1060 30 L1290 14" stroke="${c.line}" stroke-width="1"/>` +
+          (on ? `<circle cx="1146" cy="40" r="12" fill="${c.lampOn}" opacity="0.3"/><circle cx="1204" cy="36" r="12" fill="${c.lampOn}" opacity="0.3"/>` : "") +
+          `<path d="M1146 24 V36 M1204 20 V32" stroke="${c.line}" stroke-width="1"/><circle cx="1146" cy="39" r="3.6" fill="${on ? c.lampOn : c.lamp}"/><circle cx="1204" cy="35" r="3.6" fill="${on ? c.lampOn : c.lamp}"/>` +
+          `<path d="M1260 16 V28" stroke="${c.line}" stroke-width="1.4"/><g class="${fan ? "spin" : ""}"><path d="M1246 28 H1274" stroke="${c.wood}" stroke-width="3" stroke-linecap="round"/></g><circle cx="1260" cy="28" r="2.4" fill="${c.line}"/>` +
+          `<path d="M1150 60 Q1150 54 1156 54 H1176 Q1182 54 1182 60 V68 H1150Z" fill="${ROOM[mode].kid3}"/><rect x="1144" y="66" width="44" height="8" rx="3" fill="${ROOM[mode].kid3}"/><path d="M1148 74 V82 M1184 74 V82" stroke="${c.wood}" stroke-width="2.4"/>` +
+          `<rect x="1196" y="70" width="20" height="3" rx="1" fill="${c.wood}"/><path d="M1206 73 V82" stroke="${c.wood}" stroke-width="2"/>` +
+          plant(c, 1090, 82) +
+          plant(c, 1240, 82) +
+          tree(c, 1010, 60, 12) +
+          ground(c.grass)
+        );
+      },
+    },
   };
   const SCENE_ALIASES = { home: "maison", house: "maison", devices: "equipements", equipment: "equipements", "équipements": "equipements", cars: "voitures", vehicles: "voitures", energy: "energie", "énergie": "energie", system: "systeme", "système": "systeme", security: "securite", "sécurité": "securite", family: "famille", outdoor: "exterieur", "extérieur": "exterieur",
     // The rooms, entrances and garden have English names; their French names (and a few others) are aliases.
@@ -1321,13 +1560,17 @@
     piscine: "pool", swimming_pool: "pool", spa: "pool",
     salle_de_jeux: "game_room", salle_de_jeu: "game_room", games_room: "game_room", gaming_room: "game_room", playroom: "game_room", billard: "game_room", arcade: "game_room",
     salon: "living_room", sejour: "living_room", living: "living_room", lounge: "living_room",
-    cuisine: "kitchen", salle_a_manger: "dining_room", dining: "dining_room" };
+    cuisine: "kitchen", salle_a_manger: "dining_room", dining: "dining_room",
+    cave: "cellar", basement: "cellar", sous_sol: "cellar", cave_a_vin: "cellar", wine_cellar: "cellar", grenier: "attic", combles: "attic", loft: "attic",
+    chambre_d_amis: "guest_room", chambre_amis: "guest_room", chambre_invites: "guest_room", guest: "guest_room", guests: "guest_room",
+    home_cinema: "home_cinema", cinema: "home_cinema", home_theater: "home_cinema", home_theatre: "home_cinema", salle_de_cinema: "home_cinema",
+    salle_de_sport: "gym", fitness: "gym", home_gym: "gym", atelier: "workshop", bricolage: "workshop", veranda: "veranda", sunroom: "veranda", conservatory: "veranda" };
   const sceneName = (v) => {
     const raw = String(v ?? "maison").toLowerCase();
     if (SCENES[raw]) return raw;
     if (SCENE_ALIASES[raw]) return SCENE_ALIASES[raw];
     // "Salle de bain", "chambre-bébé"…: accents dropped, spaces and dashes as underscores.
-    const s = raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/[\s-]+/g, "_");
+    const s = raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/[\s'’-]+/g, "_");
     if (SCENES[s]) return s;
     if (SCENE_ALIASES[s]) return SCENE_ALIASES[s];
     return s === "none" ? "none" : "maison";
@@ -1815,6 +2058,8 @@
     .steam path:nth-child(3) { animation-delay: -1.6s; }
     .sway { animation: dh-sway 3s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center top; }
     .zzz text { animation: dh-zzz 3s ease-in-out infinite; }
+    .sweep { animation: dh-sweep 1.8s ease-in-out infinite alternate; }
+    @keyframes dh-sweep { 0% { transform: translateX(0); } 100% { transform: translateX(26px); } }
     .ripple { animation: dh-ripple 1.6s linear infinite; }
     @keyframes dh-ripple { 0% { transform: translateX(0); } 100% { transform: translateX(-12px); } }
     .spray circle { animation: dh-spray 1.2s ease-out infinite; }
@@ -1835,7 +2080,7 @@
     @keyframes dh-drift { 0% { translate: 0 0; } 100% { translate: 6px 0; } }
     @keyframes dh-twinkle { 0% { opacity: 0.8; } 100% { opacity: 0.2; } }
     @keyframes dh-progress { 0% { transform: scaleX(0.3); } 100% { transform: scaleX(1); } }
-    @media (prefers-reduced-motion: reduce) { .blink, .pulse, .rain path, .robot-away, .progress, .drift, .twinkle, .flow, .spin, .steam path, .sway, .zzz text, .spray circle, .ripple { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { .blink, .pulse, .rain path, .robot-away, .progress, .drift, .twinkle, .flow, .spin, .steam path, .sway, .zzz text, .spray circle, .ripple, .sweep { animation: none; } }
   `;
 
   if (!customElements.get(TAG)) customElements.define(TAG, DashboardHeaderBanner);
