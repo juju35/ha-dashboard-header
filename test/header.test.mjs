@@ -50,6 +50,11 @@ test("scene names: French, English aliases and accents; unknown falls back to ma
     ["foyer", "entryway"],
     ["hallway", "hallway"],
     ["garden", "garden"],
+    ["Piscine", "pool"],
+    ["salle de jeux", "game_room"],
+    ["salon", "living_room"],
+    ["cuisine", "kitchen"],
+    ["Salle à manger", "dining_room"],
     ["nope", "maison"],
   ])
     assert.equal(dh.sceneName(given), want, given);
@@ -124,7 +129,7 @@ test("templates are recognised", () => {
 });
 
 test("every scene draws a complete SVG in both themes, whatever its state", () => {
-  const states = [{}, { lights: "on", vacuum: "cleaning", appliance: "on", printer: "on", vehicles: 1, tempo: "rouge", power: "on", alert: "error", alarm: "triggered", lock: "open", camera_privacy: "on", school: "off", bin: "vert", rain: "on", lamp: "on", light: "on", humidity: "85", fan: "on", occupied: "on", shutter: "40", sleep: "on", night_light: "on", music: "on", pc: "on", led: "cyan", door: "opening", car: "off", motion: "on", busy: "on", washer: "on", dryer: "on", doorbell: "on", mailbox: "on", parcel: "on", watering: "on", mower: "mowing" }];
+  const states = [{}, { lights: "on", vacuum: "cleaning", appliance: "on", printer: "on", vehicles: 1, tempo: "rouge", power: "on", alert: "error", alarm: "triggered", lock: "open", camera_privacy: "on", school: "off", bin: "vert", rain: "on", lamp: "on", light: "on", humidity: "85", fan: "on", occupied: "on", shutter: "40", sleep: "on", night_light: "on", music: "on", pc: "on", led: "cyan", door: "opening", car: "off", motion: "on", busy: "on", washer: "on", dryer: "on", doorbell: "on", mailbox: "on", parcel: "on", watering: "on", mower: "mowing", pump: "on", heater: "on", cleaner: "on", cover: "50", tv: "on", arcade: "on", neon: "cyan", cooking: "on", oven: "on", hood: "on", dishwasher: "on" }];
   for (const [name, scene] of Object.entries(dh.SCENES)) {
     assert.match(scene.icon, /^mdi:/);
     for (const mode of ["light", "dark"]) {

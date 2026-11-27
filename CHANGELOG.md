@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.0 - 2026-11-27
+
+### Features
+- Five new scenes: `pool` (outdoor: ripples while the pump runs, underwater light, heat pump fan, robot cleaner, cover rolled to its position), `game_room` (neon sign in its color, arcade cabinet, pool table under its lamp, TV and console), `living_room` (floor lamp, sofa, TV, roller shutter), `kitchen` (lights under the cabinets, hob steaming while cooking, oven lit, hood fan, dishwasher programme) and `dining_room` (pendant lamp and candle, roller shutter). French names work too: `piscine`, `salle_de_jeux`, `salon`, `cuisine`, `salle_a_manger`.
+
 ## 1.6.0 - 2026-11-26
 
 ### Features
