@@ -25,6 +25,18 @@ const VIEWS = {
   entrance: ["Entrance", "Doorbell", "Mail"],
   garden: ["Garden", "Watering", "Mower"],
   entryway: ["Entrance", "Alarm", "Lock"],
+  pool: ["Pool", "Filtration", "Heating"],
+  game_room: ["Game room", "Arcade", "Lights"],
+  living_room: ["Living room", "TV", "Shutters"],
+  kitchen: ["Kitchen", "Oven", "Dishwasher"],
+  dining_room: ["Dining room", "Lights", "Shutters"],
+  cellar: ["Cellar", "Water heater", "Leaks"],
+  attic: ["Attic", "Skylight", "Climate"],
+  guest_room: ["Guest room", "Shutters", "Climate"],
+  home_cinema: ["Cinema", "Projector", "Sound"],
+  gym: ["Gym", "Treadmill", "Climate"],
+  workshop: ["Workshop", "3D printer", "Tools"],
+  veranda: ["Veranda", "Blinds", "Climate"],
 };
 
 // One dashboard per scene: its title, views, and the header block of its YAML.
@@ -59,6 +71,18 @@ export const DASHBOARDS = {
   entrance: { title: "Entrance", header: { scene: "entrance", subtitle: "Door locked · 1 letter", status: { text: "Mail", color: "blue" }, scene_state: { light: "off", door: "off", doorbell: "off", mailbox: "on", parcel: "off" } } },
   entryway: { title: "Entryway", header: { scene: "entryway", subtitle: "Front door locked · alarm armed away", status: { text: "Armed", color: "green" }, scene_state: { lights: "on", lock: "locked", alarm: "armed_away", door: "off" } } },
   garden: { title: "Garden", header: { scene: "garden", subtitle: "Soil 34 % · mower docked", status: { text: "All good", color: "green" }, scene_state: { watering: "off", mower: "docked", lights: "off" } } },
+  pool: { title: "Pool", header: { scene: "pool", subtitle: "Water 26 °C · pH 7.2", status: { text: "Ready", color: "green" }, scene_state: { pump: "off", light: "off", heater: "off", cleaner: "off", cover: "open" } } },
+  game_room: { title: "Game room", header: { scene: "game_room", subtitle: "Arcade off · TV off", status: { text: "Idle", color: "gray" }, scene_state: { lights: "on", tv: "off", arcade: "off", neon: "violet" } } },
+  living_room: { title: "Living room", header: { scene: "living_room", subtitle: "21 °C · shutter 60 %", status: { text: "Comfort", color: "green" }, scene_state: { lights: "on", tv: "off", shutter: "60" } } },
+  kitchen: { title: "Kitchen", header: { scene: "kitchen", subtitle: "Oven off · dishwasher idle", status: { text: "Idle", color: "gray" }, scene_state: { lights: "on", cooking: "off", oven: "off", hood: "off", dishwasher: "off" } } },
+  dining_room: { title: "Dining room", header: { scene: "dining_room", subtitle: "20 °C · shutter open", status: { text: "Comfort", color: "green" }, scene_state: { lights: "on", shutter: "100" } } },
+  cellar: { title: "Cellar", header: { scene: "cellar", subtitle: "13 °C · 68 % humidity", status: { text: "Dry", color: "green" }, scene_state: { lights: "off", humidity: "68", water_heater: "off", leak: "off" } } },
+  attic: { title: "Attic", header: { scene: "attic", subtitle: "24 °C · skylight open", status: { text: "Open", color: "blue" }, scene_state: { lights: "off", skylight: "open" } } },
+  guest_room: { title: "Guest room", header: { scene: "guest_room", subtitle: "18 °C · no guest", status: { text: "Free", color: "gray" }, scene_state: { lights: "off", shutter: "100", occupied: "off", sleep: "off" } } },
+  home_cinema: { title: "Cinema", header: { scene: "home_cinema", subtitle: "Projector off · amplifier off", status: { text: "Off", color: "gray" }, scene_state: { projector: "off", lights: "on", sound: "off" } } },
+  gym: { title: "Gym", header: { scene: "gym", subtitle: "19 °C · treadmill off", status: { text: "Idle", color: "gray" }, scene_state: { treadmill: "off", fan: "off", lights: "on" } } },
+  workshop: { title: "Workshop", header: { scene: "workshop", subtitle: "3D printer idle · saw off", status: { text: "Idle", color: "gray" }, scene_state: { lights: "on", printer: "off", saw: "off" } } },
+  veranda: { title: "Veranda", header: { scene: "veranda", subtitle: "23 °C · blinds open", status: { text: "Comfort", color: "green" }, scene_state: { blinds: "open", lights: "off", fan: "off" } } },
 };
 export const viewsOf = (scene) => VIEWS[scene].map((title, i) => ({ title, path: `v${i}` }));
 
@@ -77,7 +101,9 @@ export const shots = [
   // The illustrated header of each scene, desktop (scene-<name>): scene-maison, scene-equipements, scene-voitures,
   // scene-energie, scene-systeme, scene-securite, scene-famille, scene-exterieur, scene-bathroom, scene-toilet,
   // scene-bedroom, scene-nursery, scene-kids_room, scene-teen_room, scene-garage, scene-hallway,
-  // scene-office, scene-laundry, scene-entrance, scene-entryway, scene-garden.
+  // scene-office, scene-laundry, scene-entrance, scene-entryway, scene-garden, scene-pool, scene-game_room,
+  // scene-living_room, scene-kitchen, scene-dining_room, scene-cellar, scene-attic, scene-guest_room,
+  // scene-home_cinema, scene-gym, scene-workshop, scene-veranda.
   ...Object.keys(DASHBOARDS).flatMap((scene) => twins(`scene-${scene}`, scene)),
   // Compact mode, desktop and phone; folded on scroll; the illustrated header on a phone.
   // The cars scene's other layouts: the driveway (the compact is away, its spot left empty) and the station.
@@ -142,5 +168,15 @@ export const gifs = [
   ...twins("entrance-doorbell", "entrance", { header: { status: { text: "Someone's at the door", color: "amber" }, scene_state: { light: "on", door: "off", doorbell: "on", mailbox: "off", parcel: "on" } } }),
   ...twins("entryway-unlocked", "entryway", { header: { status: { text: "Door open", color: "amber" }, scene_state: { lights: "on", lock: "unlocked", alarm: "pending", door: "on" } } }),
   ...twins("garden-watering", "garden", { header: { status: { text: "Watering", color: "cyan" }, scene_state: { watering: "on", mower: "mowing", lights: "on" } } }),
+  ...twins("pool-running", "pool", { header: { status: { text: "Filtering", color: "cyan" }, scene_state: { pump: "on", light: "on", heater: "on", cleaner: "on", cover: "open" } } }),
+  ...twins("game-room-playing", "game_room", { header: { status: { text: "Playing", color: "violet" }, scene_state: { lights: "on", tv: "on", arcade: "on", neon: "cyan" } } }),
+  ...twins("living-room-tv", "living_room", { header: { status: { text: "Watching TV", color: "violet" }, scene_state: { lights: "off", tv: "on", shutter: "0" } } }),
+  ...twins("kitchen-cooking", "kitchen", { header: { status: { text: "Cooking", color: "red" }, scene_state: { lights: "on", cooking: "on", oven: "on", hood: "on", dishwasher: "on" } } }),
+  ...twins("cellar-leak", "cellar", { header: { status: { text: "Leak!", color: "red" }, scene_state: { lights: "on", humidity: "82", water_heater: "on", leak: "on" } } }),
+  ...twins("guest-room-staying", "guest_room", { header: { status: { text: "Guest asleep", color: "violet" }, scene_state: { lights: "off", shutter: "0", occupied: "on", sleep: "on" } } }),
+  ...twins("home-cinema-playing", "home_cinema", { header: { status: { text: "Playing", color: "violet" }, scene_state: { projector: "on", lights: "off", sound: "on" } } }),
+  ...twins("gym-running", "gym", { header: { status: { text: "Workout", color: "green" }, scene_state: { treadmill: "on", fan: "on", lights: "on" } } }),
+  ...twins("workshop-busy", "workshop", { header: { status: { text: "Printing", color: "amber" }, scene_state: { lights: "on", printer: "printing", saw: "on" } } }),
+  ...twins("veranda-fan", "veranda", { header: { status: { text: "Blinds closed", color: "amber" }, scene_state: { blinds: "closed", lights: "on", fan: "on" } } }),
   ...twins("energy-now", "energie", { header: { status: { text: "1.24 kW", color: "amber" }, scene_state: { layout: "now", grid: "0.44", solar: "0.8" } } }),
 ];
