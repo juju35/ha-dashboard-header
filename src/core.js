@@ -1419,7 +1419,7 @@
         const proj = truthy(st.projector);
         const on = truthy(st.lights);
         const sound = truthy(st.sound);
-        const sconce = (x) => (on ? `<circle cx="${x}" cy="30" r="12" fill="${c.lampOn}" opacity="0.25"/>` : "") + `<path d="M${x - 5} 34 L${x - 3} 26 H${x + 3} L${x + 5} 34Z" fill="${on ? c.lampOn : c.lamp}"/>`;
+        const sconce = (x) => `${on ? `<circle cx="${x}" cy="30" r="12" fill="${c.lampOn}" opacity="0.25"/>` : ""}<path d="M${x - 5} 34 L${x - 3} 26 H${x + 3} L${x + 5} 34Z" fill="${on ? c.lampOn : c.lamp}"/>`;
         const seat = (x) =>
           `<path d="M${x} 56 Q${x} 50 ${x + 6} 50 H${x + 20} Q${x + 26} 50 ${x + 26} 56 V70 H${x}Z" fill="${r.seat}"/><rect x="${x - 3}" y="64" width="32" height="10" rx="3" fill="${r.seat}"/><rect x="${x + 2}" y="74" width="4" height="4" fill="${c.rack}"/><rect x="${x + 20}" y="74" width="4" height="4" fill="${c.rack}"/>`;
         return (
@@ -1517,7 +1517,7 @@
       keys: ["blinds", "lights", "fan"],
       // The glass structure of the veranda against the house, its roof blinds drawn to their closed share, a ceiling
       // fan, hanging lights, an armchair and potted plants.
-      draw: (c, st, p, mode, _hass, _val, narrow) => {
+      draw: (c, st, _p, mode, _hass, _val, narrow) => {
         const on = truthy(st.lights);
         const fan = truthy(st.fan);
         const shut = closedShare(st.blinds);
