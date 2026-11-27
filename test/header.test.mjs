@@ -319,3 +319,16 @@ test("subviews: false keeps the native header, unless the subview has its own bl
   assert.equal(dh.resolveSubviewConfig(lovelace, { subview: true }), null);
   assert.equal(dh.resolveSubviewConfig(lovelace, { subview: true, dashboard_header: { mode: "compact" } }).mode, "compact");
 });
+
+test("no polling: dashboard, panel and theme changes come from the bus, subscribed once per connection", () => {
+  const d = load();
+  const types = [];
+  const conn = { subscribeEvents: (_cb, type) => (types.push(type), Promise.resolve(() => {})) };
+  d.watchBus({ connection: conn });
+  d.watchBus({ connection: conn });
+  assert.deepEqual(types, ["lovelace_updated", "panels_updated", "themes_updated"]);
+  d.watchBus({ connection: { ...conn } });
+  assert.equal(types.length, 6);
+  d.watchBus(undefined);
+  assert.equal(types.length, 6);
+});

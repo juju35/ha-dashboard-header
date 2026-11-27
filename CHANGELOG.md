@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.1 - 2026-11-27
+
+### Fixes
+- The banner no longer checks the page every 1.5 s: a theme switch (applied on the page's root element), a dashboard saved, a panel added or a theme edited (Home Assistant's `lovelace_updated`, `panels_updated` and `themes_updated` events, open to every user) and coming back to the tab redraw it when they happen.
+
 ## 1.7.0 - 2026-11-27
 
 ### Features

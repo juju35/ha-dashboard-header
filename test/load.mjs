@@ -34,7 +34,6 @@ export const load = () => {
     location: { pathname: "/dashboard-home/0", search: "" },
     history: { pushState() {} },
     requestAnimationFrame: () => 0,
-    setInterval: () => 0,
     addEventListener() {},
     scrollY: 0,
   };
