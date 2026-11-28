@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.2 - 2026-11-28
+
+### Fixes
+- Subviews: the banner's back button works again (#27). Since Home Assistant made its back arrow a link to `back_path`, a click sent to the hidden arrow was ignored; the button now calls Home Assistant's own back (`back_path`, else the page you came from), or clicks the link inside the arrow.
+
 ## 1.7.1 - 2026-11-27
 
 ### Fixes

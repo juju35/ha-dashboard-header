@@ -314,6 +314,27 @@ test("subviews: the dashboard block with the subview's title and icon, the dashb
   assert.equal(dh.resolveSubviewConfig(lovelace, { subview: true, dashboard_header: { enabled: false } }), null);
 });
 
+test("subviews: the back button calls Home Assistant's own back, else the link inside the native arrow", () => {
+  const b = new dh.Banner();
+  let calls = 0;
+  b._root = { _goBack: () => calls++ };
+  b._goBack();
+  assert.equal(calls, 1);
+  // No root back: the link in the arrow is clicked (a click sent to the arrow itself is let through by Home Assistant).
+  let link = 0;
+  let host = 0;
+  const anchor = { click: () => link++ };
+  const iconButton = { shadowRoot: { querySelector: (s) => (s === "a[href]" ? anchor : null) } };
+  const arrow = { href: "/lovelace/kitchen", click: () => host++, shadowRoot: { querySelector: () => iconButton } };
+  b._root = { shadowRoot: { querySelector: () => arrow } };
+  b._goBack();
+  assert.deepEqual([link, host], [1, 0]);
+  // Embedded roots keep the arrow's own way.
+  b._root = { embedded: true, _goBack: () => calls++, shadowRoot: { querySelector: () => arrow } };
+  b._goBack();
+  assert.deepEqual([calls, link], [1, 2]);
+});
+
 test("subviews: false keeps the native header, unless the subview has its own block", () => {
   const lovelace = { dashboard_header: { subviews: false } };
   assert.equal(dh.resolveSubviewConfig(lovelace, { subview: true }), null);

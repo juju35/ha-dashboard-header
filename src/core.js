@@ -1836,13 +1836,20 @@
     }
 
     _goBack() {
-      const arrow = this._root?.shadowRoot?.querySelector(".toolbar ha-icon-button-arrow-prev");
-      if (arrow) return arrow.click();
-      const views = this._root?.lovelace?.config?.views || [];
-      const back = views[currentViewIndex(this._root, views)]?.back_path;
+      const root = this._root;
+      // Home Assistant's own back (back_path, the history, or the dashboard's first view). Since the arrow became a link
+      // to back_path, a plain click is caught only when it comes from that link: a click sent to the arrow itself is let
+      // through and does nothing, so the root's back is called, or else the link inside the arrow is clicked.
+      if (root && !root.embedded && typeof root._goBack === "function") return root._goBack();
+      const arrow = root?.shadowRoot?.querySelector(".toolbar ha-icon-button-arrow-prev");
+      const link = arrow?.shadowRoot?.querySelector("ha-icon-button")?.shadowRoot?.querySelector("a[href]");
+      if (link) return link.click();
+      if (arrow && !arrow.href) return arrow.click(); // older frontends: the arrow's own click handler
+      const views = root?.lovelace?.config?.views || [];
+      const back = views[currentViewIndex(root, views)]?.back_path;
       if (back) {
-        history.pushState(null, "", back);
-        return window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+        history.replaceState(null, "", back);
+        return window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: true } }));
       }
       history.back();
     }
